@@ -1,32 +1,38 @@
 # .github/workflows/generate.yml
 # GitHub Actions workflow to automatically run the Python script daily,
-# saving generated content to Supabase.
+# save content to Supabase, generate RSS, and commit RSS back to repo.
 
-name: Daily Guide Generation (Supabase)
+name: Daily Guide Generation (Supabase + RSS)
 
 on:
   schedule:
     # Trigger the workflow at 08:00 UTC every day.
     - cron: '0 8 * * *'
   workflow_dispatch: # Allows manual triggering
+  push: # Also trigger on push to main to test changes faster (optional)
+    branches:
+      - main # Or your default branch name
 
 jobs:
   generate-guide:
     runs-on: ubuntu-latest # Use the latest Ubuntu runner
 
-    # Environment variables needed by the Python script
-    # These are sourced from GitHub repository secrets
+    # Grant permissions for the workflow to push code back to the repo
+    permissions:
+      contents: write # Required to push changes back
+
+    # Environment variables available to all steps in this job
     env:
       # Supabase Credentials
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }} # Use Service Role Key for backend script
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
 
       # Google Cloud Credentials
       GCP_PROJECT: ${{ secrets.GCP_PROJECT }}
       GCP_LOCATION: ${{ secrets.GCP_LOCATION }}
 
       # Python configuration
-      PYTHONUNBUFFERED: "1"
+      PYTHONUNBUFFERED: "1" # Ensures print statements appear in logs immediately
 
     steps:
       # Step 1: Check out the repository code
@@ -40,21 +46,51 @@ jobs:
           python-version: '3.11'
           cache: 'pip' # Cache dependencies
 
-      # Step 3: Install Python dependencies (including supabase-py)
+      # Step 3: Install Python dependencies
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r scripts/requirements.txt
 
       # Step 4: Authenticate to Google Cloud for Vertex AI
-      # Configures Application Default Credentials (ADC) using the SA key secret
       - name: Set up Google Cloud SDK and Auth
         uses: google-github-actions/setup-gcloud@v2
         with:
           service_account_key: ${{ secrets.GCP_SA_KEY }}
           project_id: ${{ secrets.GCP_PROJECT }}
 
-      # Step 5: Run the Python generator script
-      # The script will use Supabase env vars and Google Cloud ADC
-      - name: Run Guide Generator Script (Python/Supabase)
+      # Step 5: Run the Python generator script (generates content and rss.xml)
+      - name: Run Guide Generator Script (Python/Supabase/RSS)
         run: python scripts/generate_guide.py
+
+      # --- NEW STEPS TO COMMIT RSS ---
+      # Step 6: Configure Git
+      - name: Configure Git User
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          
+      # Step 7: Add and Commit rss.xml
+      # Only commit if rss.xml has changed or is new
+      - name: Add and Commit RSS Feed
+        run: |
+          git add public/rss.xml
+          # Check if there are changes to commit
+          if git diff --staged --quiet; then
+            echo "No changes to rss.xml to commit."
+          else
+            git commit -m "docs: Update RSS feed [skip ci]"
+            echo "Committed rss.xml changes."
+          fi
+          
+      # Step 8: Push changes back to the repository
+      # Only push if a commit was actually made in the previous step
+      - name: Push RSS Feed Changes
+        # Check if the last commit message contains "[skip ci]" which indicates a commit was made
+        if: steps.add-commit.outputs.committed == 'true' || contains(github.event.head_commit.message, '[skip ci]') == false 
+        run: |
+          echo "Pushing changes..."
+          git push origin main # Make sure 'main' is your default branch name
+        # Add error handling or retry logic if needed
+        # continue-on-error: true # Optional: Allow workflow to succeed even if push fails
+
