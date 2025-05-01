@@ -57,6 +57,22 @@
              margin-bottom: 1em;
              border-radius: 0.5rem; /* rounded-lg */
          }
+        /* Simple styling for share buttons */
+        .share-buttons a {
+            display: inline-block;
+            margin-right: 0.5rem;
+            padding: 0.3rem 0.6rem;
+            border-radius: 0.375rem; /* rounded-md */
+            font-size: 0.8rem;
+            transition: background-color 0.2s;
+        }
+        .share-twitter { background-color: #1DA1F2; color: white; }
+        .share-twitter:hover { background-color: #0c85d0; }
+        .share-facebook { background-color: #1877F2; color: white; }
+        .share-facebook:hover { background-color: #1158b4; }
+        .share-email { background-color: #7f8c8d; color: white; }
+        .share-email:hover { background-color: #636e72; }
+
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
@@ -66,6 +82,10 @@
             <h1 class="text-4xl font-bold text-gray-900">Daily Reads Blog</h1>
             <p class="text-gray-600">Your daily dose of interesting reads.</p>
         </header>
+
+        <div class="mb-6">
+            <input type="search" id="search-input" placeholder="Search posts by title..." class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+        </div>
 
         <nav class="mb-8 border-b border-gray-300">
             <ul class="flex flex-wrap -mb-px text-sm font-medium text-center text-gray-500">
@@ -84,7 +104,7 @@
                  <li class="mr-2">
                     <a href="#" id="tab-Travel" class="tab-link inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300" data-tab="Travel">Travel</a>
                 </li>
-                <li class="mr-2">
+                 <li class="mr-2">
                     <a href="#" id="tab-Books" class="tab-link inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300" data-tab="Books">Books</a>
                 </li>
                  <li class="mr-2">
@@ -94,10 +114,14 @@
         </nav>
 
         <main id="main-content">
+             <div id="featured-post-container" class="mb-10 hidden">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4 border-b pb-2">Latest Post</h2>
+                </div>
+
              <div id="blog-posts-container">
                  <p id="status-message" class="text-center text-gray-500 italic mt-10 p-5 bg-gray-100 rounded-md">Loading posts...</p>
              </div>
-             </main>
+        </main>
 
         <div class="ad-container my-10 py-5 border-t border-b border-gray-200 text-center bg-gray-100">
             <ins class="adsbygoogle"
@@ -115,15 +139,19 @@
 
     <script>
       // --- Configuration ---
-      const SUPABASE_URL = 'https://gbxdhqqlbandnhvfkbtr.supabase.co'; // Your Supabase URL
-      const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdieGRocXFsYmFuZG5odmZrYnRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxMDAwOTQsImV4cCI6MjA2MTY3NjA5NH0.W_T6oa1lSbZ-9W_E5Jo66c9ShK_FVoc1zJTZ7vir6eY'; // Your Supabase Anon Key
-      const POSTS_LIMIT = 20; // How many recent posts to display per category/page
+      const SUPABASE_URL = 'https://gbxdhqqlbandnhvfkbtr.supabase.co';
+      const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdieGRocXFsYmFuZG5odmZrYnRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxMDAwOTQsImV4cCI6MjA2MTY3NjA5NH0.W_T6oa1lSbZ-9W_E5Jo66c9ShK_FVoc1zJTZ7vir6eY';
+      const POSTS_LIMIT = 20;
+      const SITE_BASE_URL = window.location.origin; // Get base URL for sharing
 
       // --- DOM References ---
       const mainContent = document.getElementById('main-content');
       const tabLinks = document.querySelectorAll('.tab-link');
       const postsContainer = document.getElementById('blog-posts-container');
-      // statusMessage ref removed as loading is handled within loadPosts
+      const featuredPostContainer = document.getElementById('featured-post-container');
+      const searchInput = document.getElementById('search-input');
+      let currentTab = 'home'; // Keep track of the active tab
+      let debounceTimer; // For search input debouncing
 
       // --- Functions ---
 
@@ -139,81 +167,173 @@
           }
       }
 
-      // --- MODIFIED: Function to fetch and display posts (handles category filtering) ---
-      async function loadPosts(category = null) {
-          // Show loading message inside the container
-          postsContainer.innerHTML = `<p id="status-message" class="text-center text-gray-500 italic mt-10 p-5 bg-gray-100 rounded-md">Loading posts${category ? ` for ${category}` : ''}...</p>`;
+      // Function to render share buttons
+      function renderShareButtons(postTitle, postSlug, container) {
+          const shareUrl = `${SITE_BASE_URL}/#post-${postSlug}`; // Simple anchor link for now
+          const encodedUrl = encodeURIComponent(shareUrl);
+          const encodedTitle = encodeURIComponent(postTitle);
+
+          const twitterUrl = `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}`;
+          const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
+          const emailUrl = `mailto:?subject=${encodedTitle}&body=Check out this post: ${encodedUrl}`;
+
+          const buttonsHtml = `
+              <div class="share-buttons mt-4 pt-4 border-t border-gray-100">
+                  <span class="text-xs font-semibold mr-2">Share:</span>
+                  <a href="${twitterUrl}" target="_blank" rel="noopener noreferrer" class="share-twitter" title="Share on Twitter">Twitter</a>
+                  <a href="${facebookUrl}" target="_blank" rel="noopener noreferrer" class="share-facebook" title="Share on Facebook">Facebook</a>
+                  <a href="${emailUrl}" class="share-email" title="Share via Email">Email</a>
+              </div>
+          `;
+          container.insertAdjacentHTML('beforeend', buttonsHtml);
+      }
+
+       // Function to render a single post article
+       function renderPost(post, container) {
+            const article = document.createElement('article');
+            article.className = 'blog-post bg-white p-6 rounded-lg shadow-sm mb-8 border border-gray-200';
+            article.id = `post-${post.slug}`; // Add ID for potential linking
+
+            const title = document.createElement('h2');
+            title.className = 'blog-post-title text-2xl font-semibold text-gray-900 mb-2';
+            title.textContent = post.title || 'Untitled Post';
+
+            const meta = document.createElement('p');
+            meta.className = 'blog-post-meta text-sm text-gray-500 mb-4';
+            const categoryText = post.category ? ` | Category: ${post.category}` : '';
+            meta.textContent = `Published on: ${formatDate(post.publishedAt)}${categoryText}`;
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'blog-post-content text-gray-700';
+            contentDiv.innerHTML = post.contentHTML || '<p>Content not available.</p>';
+
+            // Container for share buttons
+            const shareContainer = document.createElement('div');
+
+            article.appendChild(title);
+            article.appendChild(meta);
+            article.appendChild(contentDiv);
+            article.appendChild(shareContainer); // Add share container
+
+            container.appendChild(article);
+
+            // Render share buttons into the specific container for this post
+            renderShareButtons(post.title, post.slug, shareContainer);
+       }
+
+      // --- MODIFIED: Function to fetch and display posts ---
+      async function loadPosts(category = null, searchTerm = null) {
+          // Show loading message
+          postsContainer.innerHTML = `<p id="status-message" class="text-center text-gray-500 italic mt-10 p-5 bg-gray-100 rounded-md">Loading posts...</p>`;
+          featuredPostContainer.innerHTML = ''; // Clear featured post area
+          featuredPostContainer.classList.add('hidden'); // Hide featured post area
+
+          let isFeaturedHandled = false;
 
           try {
-              // Base URL
-              let fetchURL = `${SUPABASE_URL}/rest/v1/guides?select=*&order=publishedAt.desc&limit=${POSTS_LIMIT}`;
-              
-              // Add category filter if provided and not 'home'
-              if (category && category.toLowerCase() !== 'home') {
-                  fetchURL += `&category=eq.${encodeURIComponent(category)}`;
-                  console.log(`Fetching category: ${category}`);
-              } else {
-                   console.log("Fetching latest posts (Home)");
-              }
+              // --- Base URL and common parameters ---
+              let baseUrl = `${SUPABASE_URL}/rest/v1/guides?select=*&order=publishedAt.desc`;
+              const headers = {
+                  'apikey': SUPABASE_ANON_KEY,
+                  'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+              };
 
-              const response = await fetch(fetchURL, {
-                  headers: {
-                      'apikey': SUPABASE_ANON_KEY,
-                      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+              let posts = [];
+              let fetchUrl = baseUrl; // Start with base URL
+
+              // --- Handle Search ---
+              if (searchTerm) {
+                  console.log(`Searching for: "${searchTerm}"`);
+                  // Add search filter - searching in title only for now (case-insensitive)
+                  fetchUrl += `&title=ilike.%${encodeURIComponent(searchTerm)}%`;
+                  fetchUrl += `&limit=${POSTS_LIMIT}`; // Apply limit for search results
+              }
+              // --- Handle Categories / Home ---
+              else {
+                  // Filter by category if not 'home'
+                  if (category && category.toLowerCase() !== 'home') {
+                      fetchUrl += `&category=eq.${encodeURIComponent(category)}`;
+                      fetchUrl += `&limit=${POSTS_LIMIT}`; // Apply limit for category results
+                      console.log(`Fetching category: ${category}`);
                   }
-              });
+                  // Handle 'home' tab - potential featured post logic
+                  else {
+                      console.log("Fetching latest posts (Home)");
+                      // 1. Fetch the single latest post for the featured section
+                      const featuredUrl = `${baseUrl}&limit=1`;
+                      const featuredResponse = await fetch(featuredUrl, { headers });
+                      if (!featuredResponse.ok) throw new Error(`HTTP error! Status: ${featuredResponse.status} (featured)`);
+                      const featuredData = await featuredResponse.json();
 
-              if (!response.ok) {
-                  throw new Error(`HTTP error! Status: ${response.status} ${response.statusText}`);
+                      if (featuredData && featuredData.length > 0) {
+                          const featuredPost = featuredData[0];
+                          console.log("Rendering featured post:", featuredPost.title);
+                          renderPost(featuredPost, featuredPostContainer); // Render into featured container
+                          featuredPostContainer.classList.remove('hidden'); // Show featured container
+                          isFeaturedHandled = true;
+
+                          // 2. Fetch the *rest* of the posts for the main list (offset by 1)
+                          fetchUrl += `&limit=${POSTS_LIMIT}&offset=1`; // Get next N posts
+                      } else {
+                          // No posts found at all, just apply limit for the main fetch
+                           fetchUrl += `&limit=${POSTS_LIMIT}`;
+                      }
+                  }
               }
 
-              const posts = await response.json();
-              postsContainer.innerHTML = ''; // Clear loading/previous content
-
-              if (posts && posts.length > 0) {
-                  console.log(`Loaded ${posts.length} posts from Supabase.`);
-                  posts.forEach(post => {
-                      const article = document.createElement('article');
-                      // Added Tailwind classes for styling posts
-                      article.className = 'blog-post bg-white p-6 rounded-lg shadow-sm mb-8 border border-gray-200'; 
-
-                      const title = document.createElement('h2'); // Use H2 for post titles
-                      title.className = 'blog-post-title text-2xl font-semibold text-gray-900 mb-2';
-                      title.textContent = post.title || 'Untitled Post';
-
-                      const meta = document.createElement('p');
-                      meta.className = 'blog-post-meta text-sm text-gray-500 mb-4';
-                      // Optionally display category along with date
-                      const categoryText = post.category ? ` | Category: ${post.category}` : '';
-                      meta.textContent = `Published on: ${formatDate(post.publishedAt)}${categoryText}`;
-
-                      const contentDiv = document.createElement('div');
-                      contentDiv.className = 'blog-post-content text-gray-700';
-                      // WARNING: Setting innerHTML requires trust or sanitization.
-                      contentDiv.innerHTML = post.contentHTML || '<p>Content not available.</p>';
-
-                      article.appendChild(title);
-                      article.appendChild(meta);
-                      article.appendChild(contentDiv);
-
-                      postsContainer.appendChild(article);
-                  });
+              // --- Execute the main fetch (unless featured post was the only one) ---
+              if (!isFeaturedHandled || (category && category.toLowerCase() !== 'home') || searchTerm || !isFeaturedHandled) {
+                   const response = await fetch(fetchUrl, { headers });
+                   if (!response.ok) {
+                       throw new Error(`HTTP error! Status: ${response.status} ${response.statusText}`);
+                   }
+                   posts = await response.json();
               } else {
+                  // If featured post was handled and it's home tab with no search,
+                  // the 'posts' array for the main list is empty.
+                  posts = [];
+              }
+
+
+              // --- Render results ---
+              postsContainer.innerHTML = ''; // Clear loading message
+
+              if ((isFeaturedHandled && posts.length > 0) || (!isFeaturedHandled && posts.length > 0)) {
+                    console.log(`Loaded ${posts.length} posts for the list.`);
+                    posts.forEach(post => {
+                        renderPost(post, postsContainer); // Render into main list container
+                    });
+              } else if (!isFeaturedHandled && posts.length === 0) {
+                  // Only show "no posts" if featured wasn't handled either
                   const noPostsMessage = document.createElement('p');
                   noPostsMessage.className = 'text-center text-gray-500 italic mt-10 p-5 bg-gray-100 rounded-md';
-                  noPostsMessage.textContent = `No blog posts found${category ? ` for the '${category}' category` : ''} yet. Please check back later!`;
+                  let message = 'No blog posts found yet. Please check back later!';
+                  if (searchTerm) {
+                      message = `No posts found matching "${searchTerm}".`;
+                  } else if (category && category.toLowerCase() !== 'home') {
+                      message = `No blog posts found for the '${category}' category yet.`;
+                  }
+                  noPostsMessage.textContent = message;
                   postsContainer.appendChild(noPostsMessage);
-                  console.log(`No posts found in Supabase table${category ? ` for category '${category}'` : ''}.`);
+                  console.log("No posts found in Supabase table for the current filter.");
+              } else if (isFeaturedHandled && posts.length === 0) {
+                  console.log("Only the featured post was found.");
+                  // Optionally add a message like "No older posts found."
               }
+
           } catch (error) {
               console.error("Failed to fetch or process posts from Supabase:", error);
-              // Display error message inside the container
               postsContainer.innerHTML = `<p id="status-message" class="text-center text-red-600 mt-10 p-5 bg-red-100 rounded-md">Sorry, there was an error loading posts. Please try refreshing the page later. Error: ${error.message}</p>`;
+              featuredPostContainer.innerHTML = ''; // Clear featured on error too
+              featuredPostContainer.classList.add('hidden');
           }
       }
 
       // Function to switch tabs
       function switchTab(tabId) {
+          currentTab = tabId; // Update current tab state
+          searchInput.value = ''; // Clear search input when switching tabs
+
           // Deactivate all tab links
           tabLinks.forEach(link => {
               link.classList.remove('tab-active', 'text-blue-600', 'border-blue-600');
@@ -221,7 +341,6 @@
           });
 
           // Activate the selected tab link
-          // Use data-tab attribute for selecting the correct link
           const activeLink = document.querySelector(`.tab-link[data-tab='${tabId}']`);
           if (activeLink) {
               activeLink.classList.add('tab-active', 'text-blue-600', 'border-blue-600');
@@ -229,22 +348,46 @@
           }
 
           // Load content based on the tabId ('home' or the category name)
-          // Pass null for 'home' to load all posts, otherwise pass the category name
-          loadPosts(tabId === 'home' ? null : tabId);
+          loadPosts(tabId === 'home' ? null : tabId, null); // Load posts for the tab, clear search term
       }
 
       // --- Event Listeners ---
+      // Tab switching
       tabLinks.forEach(link => {
           link.addEventListener('click', (event) => {
-              event.preventDefault(); // Prevent default link behavior
+              event.preventDefault();
               const tabId = event.target.getAttribute('data-tab');
               switchTab(tabId);
           });
       });
 
+      // Search input handling (with debouncing)
+      searchInput.addEventListener('input', (event) => {
+          clearTimeout(debounceTimer);
+          const searchTerm = event.target.value.trim();
+
+          debounceTimer = setTimeout(() => {
+              if (searchTerm.length > 2 || searchTerm.length === 0) {
+                  console.log(`Debounced search: ${searchTerm}`);
+                  // When searching, override category and load all matching posts
+                  loadPosts(null, searchTerm);
+                  // Optionally deactivate tabs visually during search
+                   if(searchTerm.length > 0) {
+                        tabLinks.forEach(link => {
+                            link.classList.remove('tab-active', 'text-blue-600', 'border-blue-600');
+                            link.classList.add('border-transparent', 'hover:text-gray-600', 'hover:border-gray-300');
+                        });
+                   } else {
+                       // If search is cleared, switch back to the last active tab
+                       switchTab(currentTab);
+                   }
+              }
+          }, 500); // Wait 500ms after user stops typing
+      });
+
+
       // --- Initial Load ---
-      // Load home posts by default when the page loads
-      switchTab('home');
+      switchTab('home'); // Load home posts by default
 
       // --- AdSense Initialization ---
       if (typeof adsbygoogle !== 'undefined') {
