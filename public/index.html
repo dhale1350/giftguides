@@ -73,28 +73,31 @@
                     <a href="#" id="tab-home" class="tab-link inline-block p-4 border-b-2 rounded-t-lg tab-active" data-tab="home">Home</a>
                 </li>
                 <li class="mr-2">
-                    <a href="#" id="tab-category1" class="tab-link inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300" data-tab="category1">Technology (Soon)</a>
+                    <a href="#" id="tab-Technology" class="tab-link inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300" data-tab="Technology">Technology</a>
                 </li>
                  <li class="mr-2">
-                    <a href="#" id="tab-category2" class="tab-link inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300" data-tab="category2">Lifestyle (Soon)</a>
+                    <a href="#" id="tab-Lifestyle" class="tab-link inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300" data-tab="Lifestyle">Lifestyle</a>
                 </li>
-                </ul>
+                 <li class="mr-2">
+                    <a href="#" id="tab-Food" class="tab-link inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300" data-tab="Food">Food</a>
+                </li>
+                 <li class="mr-2">
+                    <a href="#" id="tab-Travel" class="tab-link inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300" data-tab="Travel">Travel</a>
+                </li>
+                <li class="mr-2">
+                    <a href="#" id="tab-Books" class="tab-link inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300" data-tab="Books">Books</a>
+                </li>
+                 <li class="mr-2">
+                    <a href="#" id="tab-General" class="tab-link inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300" data-tab="General">General</a>
+                </li>
+            </ul>
         </nav>
 
         <main id="main-content">
-            <div id="content-home">
-                <div id="blog-posts-container">
-                    <p id="status-message" class="text-center text-gray-500 italic mt-10 p-5 bg-gray-100 rounded-md">Loading posts...</p>
-                </div>
-            </div>
-
-            <div id="content-category1" class="hidden text-center text-gray-500 mt-10 p-5 bg-gray-100 rounded-md">
-                Technology posts coming soon!
-            </div>
-             <div id="content-category2" class="hidden text-center text-gray-500 mt-10 p-5 bg-gray-100 rounded-md">
-                Lifestyle posts coming soon!
-            </div>
-            </main>
+             <div id="blog-posts-container">
+                 <p id="status-message" class="text-center text-gray-500 italic mt-10 p-5 bg-gray-100 rounded-md">Loading posts...</p>
+             </div>
+             </main>
 
         <div class="ad-container my-10 py-5 border-t border-b border-gray-200 text-center bg-gray-100">
             <ins class="adsbygoogle"
@@ -114,19 +117,13 @@
       // --- Configuration ---
       const SUPABASE_URL = 'https://gbxdhqqlbandnhvfkbtr.supabase.co'; // Your Supabase URL
       const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdieGRocXFsYmFuZG5odmZrYnRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxMDAwOTQsImV4cCI6MjA2MTY3NjA5NH0.W_T6oa1lSbZ-9W_E5Jo66c9ShK_FVoc1zJTZ7vir6eY'; // Your Supabase Anon Key
-      const POSTS_LIMIT = 20; // How many recent posts to display
+      const POSTS_LIMIT = 20; // How many recent posts to display per category/page
 
       // --- DOM References ---
       const mainContent = document.getElementById('main-content');
       const tabLinks = document.querySelectorAll('.tab-link');
-      const contentDivs = {
-          home: document.getElementById('content-home'),
-          category1: document.getElementById('content-category1'),
-          category2: document.getElementById('content-category2'),
-          // Add refs for other content divs if you add more tabs
-      };
       const postsContainer = document.getElementById('blog-posts-container');
-      const statusMessage = document.getElementById('status-message');
+      // statusMessage ref removed as loading is handled within loadPosts
 
       // --- Functions ---
 
@@ -142,13 +139,23 @@
           }
       }
 
-      // Function to fetch and display posts (currently only for 'home')
-      async function loadHomePosts() {
-          // Show loading message
-          postsContainer.innerHTML = `<p id="status-message" class="text-center text-gray-500 italic mt-10 p-5 bg-gray-100 rounded-md">Loading posts...</p>`;
+      // --- MODIFIED: Function to fetch and display posts (handles category filtering) ---
+      async function loadPosts(category = null) {
+          // Show loading message inside the container
+          postsContainer.innerHTML = `<p id="status-message" class="text-center text-gray-500 italic mt-10 p-5 bg-gray-100 rounded-md">Loading posts${category ? ` for ${category}` : ''}...</p>`;
 
           try {
-              const fetchURL = `${SUPABASE_URL}/rest/v1/guides?select=*&order=publishedAt.desc&limit=${POSTS_LIMIT}`;
+              // Base URL
+              let fetchURL = `${SUPABASE_URL}/rest/v1/guides?select=*&order=publishedAt.desc&limit=${POSTS_LIMIT}`;
+              
+              // Add category filter if provided and not 'home'
+              if (category && category.toLowerCase() !== 'home') {
+                  fetchURL += `&category=eq.${encodeURIComponent(category)}`;
+                  console.log(`Fetching category: ${category}`);
+              } else {
+                   console.log("Fetching latest posts (Home)");
+              }
+
               const response = await fetch(fetchURL, {
                   headers: {
                       'apikey': SUPABASE_ANON_KEY,
@@ -167,15 +174,18 @@
                   console.log(`Loaded ${posts.length} posts from Supabase.`);
                   posts.forEach(post => {
                       const article = document.createElement('article');
-                      article.className = 'blog-post bg-white p-6 rounded-lg shadow-sm mb-8 border border-gray-200'; // Added Tailwind classes
+                      // Added Tailwind classes for styling posts
+                      article.className = 'blog-post bg-white p-6 rounded-lg shadow-sm mb-8 border border-gray-200'; 
 
-                      const title = document.createElement('h2'); // Use H2 for post titles within the page flow
+                      const title = document.createElement('h2'); // Use H2 for post titles
                       title.className = 'blog-post-title text-2xl font-semibold text-gray-900 mb-2';
                       title.textContent = post.title || 'Untitled Post';
 
                       const meta = document.createElement('p');
                       meta.className = 'blog-post-meta text-sm text-gray-500 mb-4';
-                      meta.textContent = `Published on: ${formatDate(post.publishedAt)}`;
+                      // Optionally display category along with date
+                      const categoryText = post.category ? ` | Category: ${post.category}` : '';
+                      meta.textContent = `Published on: ${formatDate(post.publishedAt)}${categoryText}`;
 
                       const contentDiv = document.createElement('div');
                       contentDiv.className = 'blog-post-content text-gray-700';
@@ -190,48 +200,37 @@
                   });
               } else {
                   const noPostsMessage = document.createElement('p');
-                  noPostsMessage.id = 'status-message'; // Reuse ID for styling if needed
                   noPostsMessage.className = 'text-center text-gray-500 italic mt-10 p-5 bg-gray-100 rounded-md';
-                  noPostsMessage.textContent = 'No blog posts found yet. Please check back later!';
+                  noPostsMessage.textContent = `No blog posts found${category ? ` for the '${category}' category` : ''} yet. Please check back later!`;
                   postsContainer.appendChild(noPostsMessage);
-                  console.log("No posts found in Supabase table.");
+                  console.log(`No posts found in Supabase table${category ? ` for category '${category}'` : ''}.`);
               }
           } catch (error) {
               console.error("Failed to fetch or process posts from Supabase:", error);
+              // Display error message inside the container
               postsContainer.innerHTML = `<p id="status-message" class="text-center text-red-600 mt-10 p-5 bg-red-100 rounded-md">Sorry, there was an error loading posts. Please try refreshing the page later. Error: ${error.message}</p>`;
           }
       }
 
       // Function to switch tabs
       function switchTab(tabId) {
-          // Hide all content divs
-          Object.values(contentDivs).forEach(div => {
-              if (div) div.classList.add('hidden');
-          });
           // Deactivate all tab links
           tabLinks.forEach(link => {
-              link.classList.remove('tab-active', 'text-blue-600', 'border-blue-600'); // Tailwind active classes
-              link.classList.add('border-transparent', 'hover:text-gray-600', 'hover:border-gray-300'); // Tailwind inactive classes
+              link.classList.remove('tab-active', 'text-blue-600', 'border-blue-600');
+              link.classList.add('border-transparent', 'hover:text-gray-600', 'hover:border-gray-300');
           });
 
-          // Show the selected content div
-          if (contentDivs[tabId]) {
-              contentDivs[tabId].classList.remove('hidden');
-          }
           // Activate the selected tab link
-          const activeLink = document.getElementById(`tab-${tabId}`);
+          // Use data-tab attribute for selecting the correct link
+          const activeLink = document.querySelector(`.tab-link[data-tab='${tabId}']`);
           if (activeLink) {
               activeLink.classList.add('tab-active', 'text-blue-600', 'border-blue-600');
               activeLink.classList.remove('border-transparent', 'hover:text-gray-600', 'hover:border-gray-300');
           }
 
-          // Load content if it's the home tab (or add logic for other tabs later)
-          if (tabId === 'home') {
-              loadHomePosts();
-          } else {
-              // Placeholder: Add logic here if you want to load different content for other tabs
-              console.log(`Switched to tab: ${tabId} (Placeholder)`);
-          }
+          // Load content based on the tabId ('home' or the category name)
+          // Pass null for 'home' to load all posts, otherwise pass the category name
+          loadPosts(tabId === 'home' ? null : tabId);
       }
 
       // --- Event Listeners ---

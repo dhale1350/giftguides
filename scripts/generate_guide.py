@@ -1,7 +1,7 @@
 # scripts/generate_guide.py
-# Python script to generate daily blog text content using Vertex AI Gemini
-# and save it to a Supabase database table.
-# Version 14: More robust HTML cleanup.
+# Python script to generate daily blog text content using Vertex AI Gemini,
+# determine a category, and save it to a Supabase database table.
+# Version 16: Text-only generation with category assignment.
 
 # --- START DEBUGGING ---
 import os
@@ -41,7 +41,7 @@ print("--- DEBUGGING END ---")
 import datetime
 import re
 import random
-# Removed 'requests' import
+# requests is not needed
 try:
     # Import the necessary Google Cloud libraries for Vertex AI
     from google.cloud import aiplatform
@@ -69,22 +69,27 @@ try:
     # Using gemini-2.0-flash-001 as it was confirmed working
     GEMINI_MODEL_NAME = "gemini-2.0-flash-001"
     GEMINI_TOPIC_MODEL_NAME = os.getenv('GEMINI_TOPIC_MODEL_NAME', "gemini-2.0-flash-001")
+    # Define preferred categories for Gemini to choose from
+    PREFERRED_CATEGORIES = ["Technology", "Lifestyle", "Food", "Travel", "UK News", "Health", "Books", "General"]
+
 
 except KeyError as e:
-    # Updated error message to reflect removed API key requirement
+    # Updated error message
     print(f"Error: Environment variable {e} not set. Check GitHub Secrets or local environment setup.")
     sys.exit(1)
 
 # --- Supabase Interaction Function ---
-def save_guide_to_supabase(supabase: Client, title: str, slug: str, content_html: str):
-    """Saves the generated guide data (with placeholders) to Supabase."""
-    print(f"Attempting to save guide '{title}' to Supabase table 'guides'...")
+# --- MODIFIED: Added category parameter ---
+def save_guide_to_supabase(supabase: Client, title: str, slug: str, content_html: str, category: str):
+    """Saves the generated guide data (including category) to Supabase."""
+    print(f"Attempting to save guide '{title}' (Category: {category}) to Supabase table 'guides'...")
     try:
-        # Prepare the data payload for insertion
+        # Prepare the data payload for insertion, including the category
         data_to_insert = {
             "title": title,
             "slug": slug,
-            "contentHTML": content_html, # Save the cleaned HTML
+            "contentHTML": content_html,
+            "category": category, # Add the category here
             # Record the publication time in UTC ISO format
             "publishedAt": datetime.datetime.now(datetime.timezone.utc).isoformat()
         }
@@ -152,7 +157,36 @@ def get_topic_from_gemini():
         print("Warning: Failed to get topic suggestion from Gemini. Using a default topic.")
         return "The Benefits of Reading Books" # Provide a fallback topic
 
-# --- MORE ROBUST HTML CLEANUP ---
+# --- Get Category Function ---
+def get_category_for_topic(topic: str, allowed_categories: list):
+    """Asks Gemini to categorize the topic into one of the allowed categories."""
+    print(f"Requesting category for topic: '{topic}'...")
+    allowed_categories_str = ", ".join(allowed_categories)
+    category_prompt = f"""Given the blog post topic "{topic}", assign the single most appropriate category from the following list: {allowed_categories_str}.
+Output only the single category name. If none seem appropriate, output "General"."""
+    
+    category_generation_config = {
+        "temperature": 0.2, # Lower temperature for more deterministic categorization
+        "max_output_tokens": 50,
+        "top_p": 0.95,
+        "top_k": 40
+    }
+    
+    category_suggestion = call_gemini_api(GEMINI_TOPIC_MODEL_NAME, category_prompt, category_generation_config)
+
+    if category_suggestion:
+        category = category_suggestion.strip().strip('"').strip("'").strip().title() # Clean and title-case
+        # Validate if the suggested category is in our allowed list
+        if category in allowed_categories:
+            print(f"Suggested category: '{category}'")
+            return category
+        else:
+            print(f"Warning: Gemini suggested an invalid category '{category}'. Defaulting to 'General'.")
+            return "General"
+    else:
+        print("Warning: Failed to get category suggestion from Gemini. Defaulting to 'General'.")
+        return "General"
+
 def clean_html_output(html_content):
     """
     Cleans the raw HTML output from Gemini.
@@ -194,8 +228,6 @@ def clean_html_output(html_content):
     # Final strip just in case
     cleaned_content = cleaned_content.strip()
 
-    # Optional: Add more specific cleanup rules here if needed (e.g., removing specific unwanted tags)
-
     # Print comparison if changes were made
     if cleaned_content != html_content.strip():
         print("Cleaned HTML content.")
@@ -203,7 +235,6 @@ def clean_html_output(html_content):
         print("HTML content required no cleaning.")
 
     return cleaned_content
-# --- END ROBUST HTML CLEANUP ---
 
 def get_content_for_topic(topic: str):
     """Generates the main blog post HTML content (text only) for the given topic using Gemini."""
@@ -232,9 +263,8 @@ The output format must be **HTML only**, ready to be embedded directly into the 
     raw_html_content = call_gemini_api(GEMINI_MODEL_NAME, content_prompt, content_generation_config)
 
     if raw_html_content:
-        # The clean_html_output function will handle fences and ensure it starts with <h1>
-        # No need for the extra check here anymore
-        return raw_html_content # Return the raw content to be cleaned later
+        # Return the raw content to be cleaned later
+        return raw_html_content 
     else:
         # Handle failure to generate content
         print("Error: Failed to generate main blog content from Gemini.")
@@ -344,10 +374,13 @@ def main():
     # Step 1: Get Topic Suggestion from AI
     suggested_topic = get_topic_from_gemini()
 
-    # Step 2: Generate Main Content (Text Only)
+    # Step 2: Get Category for the Topic
+    suggested_category = get_category_for_topic(suggested_topic, PREFERRED_CATEGORIES)
+
+    # Step 3: Generate Main Content (Text Only)
     generated_html_content_raw = get_content_for_topic(suggested_topic)
 
-    # Step 3: Clean potential markdown fences and ensure starts with H1
+    # Step 4: Clean potential markdown fences and ensure starts with H1
     final_html_content = clean_html_output(generated_html_content_raw)
     
     # Ensure content is not None after cleaning before proceeding
@@ -355,12 +388,12 @@ def main():
         print("Error: HTML content is None after cleaning. Exiting.")
         sys.exit(1)
 
-    # Step 4: Process the final content for title and slug
+    # Step 5: Process the final content for title and slug
     extracted_title = extract_title(final_html_content, suggested_topic)
     post_slug = generate_slug(extracted_title)
 
-    # Step 5: Save the final data to Supabase
-    save_guide_to_supabase(supabase_client, extracted_title, post_slug, final_html_content)
+    # Step 6: Save the final data (including category) to Supabase
+    save_guide_to_supabase(supabase_client, extracted_title, post_slug, final_html_content, suggested_category)
 
     print(f"--- Daily Blog Post Generation Finished Successfully: {datetime.datetime.now(datetime.timezone.utc)} UTC ---")
 
