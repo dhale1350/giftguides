@@ -4,6 +4,8 @@
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Daily Reads Blog</title>
+    <link rel="alternate" type="application/rss+xml" title="Daily Reads Blog RSS Feed" href="/rss.xml">
+    
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX"
          crossorigin="anonymous"></script>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -73,6 +75,8 @@
         .share-email { background-color: #7f8c8d; color: white; }
         .share-email:hover { background-color: #636e72; }
 
+        /* Hide elements initially */
+        .hidden { display: none; }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
@@ -83,44 +87,67 @@
             <p class="text-gray-600">Your daily dose of interesting reads.</p>
         </header>
 
-        <div class="mb-6">
+        <div id="search-container" class="mb-6">
             <input type="search" id="search-input" placeholder="Search posts by title..." class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
         </div>
 
-        <nav class="mb-8 border-b border-gray-300">
+        <nav id="tabs-nav" class="mb-8 border-b border-gray-300">
             <ul class="flex flex-wrap -mb-px text-sm font-medium text-center text-gray-500">
+                 <li class="mr-2">
+                    <a href="#home" id="tab-home" class="tab-link inline-block p-4 border-b-2 rounded-t-lg" data-tab="home">Home</a>
+                </li>
                 <li class="mr-2">
-                    <a href="#" id="tab-home" class="tab-link inline-block p-4 border-b-2 rounded-t-lg tab-active" data-tab="home">Home</a>
-                </li>
-                <li class="mr-2">
-                    <a href="#" id="tab-Technology" class="tab-link inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300" data-tab="Technology">Technology</a>
+                    <a href="#Technology" id="tab-Technology" class="tab-link inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300" data-tab="Technology">Technology</a>
                 </li>
                  <li class="mr-2">
-                    <a href="#" id="tab-Lifestyle" class="tab-link inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300" data-tab="Lifestyle">Lifestyle</a>
+                    <a href="#Lifestyle" id="tab-Lifestyle" class="tab-link inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300" data-tab="Lifestyle">Lifestyle</a>
                 </li>
                  <li class="mr-2">
-                    <a href="#" id="tab-Food" class="tab-link inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300" data-tab="Food">Food</a>
+                    <a href="#Food" id="tab-Food" class="tab-link inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300" data-tab="Food">Food</a>
                 </li>
                  <li class="mr-2">
-                    <a href="#" id="tab-Travel" class="tab-link inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300" data-tab="Travel">Travel</a>
+                    <a href="#Travel" id="tab-Travel" class="tab-link inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300" data-tab="Travel">Travel</a>
                 </li>
                  <li class="mr-2">
-                    <a href="#" id="tab-Books" class="tab-link inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300" data-tab="Books">Books</a>
+                    <a href="#Books" id="tab-Books" class="tab-link inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300" data-tab="Books">Books</a>
                 </li>
                  <li class="mr-2">
-                    <a href="#" id="tab-General" class="tab-link inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300" data-tab="General">General</a>
+                    <a href="#General" id="tab-General" class="tab-link inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300" data-tab="General">General</a>
                 </li>
             </ul>
         </nav>
 
         <main id="main-content">
-             <div id="featured-post-container" class="mb-10 hidden">
-                <h2 class="text-xl font-semibold text-gray-700 mb-4 border-b pb-2">Latest Post</h2>
-                </div>
+            <div id="single-post-container" class="hidden">
+                <button id="back-button" class="mb-4 inline-block bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-1 px-3 rounded text-sm">&larr; Back to list</button>
+                <div id="single-post-content">
+                    </div>
+                 <div id="related-posts-container" class="mt-10 pt-6 border-t border-gray-300">
+                     <h3 class="text-lg font-semibold mb-3 text-gray-800">Related Posts</h3>
+                     <div id="related-posts-list">
+                         </div>
+                 </div>
+            </div>
 
-             <div id="blog-posts-container">
-                 <p id="status-message" class="text-center text-gray-500 italic mt-10 p-5 bg-gray-100 rounded-md">Loading posts...</p>
+            <div id="list-view-container">
+                 <div id="featured-post-container" class="mb-10 hidden">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-4 border-b pb-2">Latest Post</h2>
+                    </div>
+
+                 <div id="blog-posts-container">
+                     </div>
+
+                 <div id="load-more-container" class="text-center mt-8 hidden">
+                     <button id="load-more-button" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg transition duration-200">
+                         Load More
+                     </button>
+                 </div>
+            </div>
+
+             <div id="status-message-container" class="text-center text-gray-500 italic mt-10 p-5 bg-gray-100 rounded-md">
+                 Loading...
              </div>
+
         </main>
 
         <div class="ad-container my-10 py-5 border-t border-b border-gray-200 text-center bg-gray-100">
@@ -134,6 +161,7 @@
 
         <footer class="text-center mt-8 text-gray-600">
             <p><small>Content by CMRS. Advertising supports this site.</small></p>
+            <p><small><a href="/rss.xml" target="_blank" class="underline hover:text-blue-600">RSS Feed</a></small></p>
         </footer>
     </div>
 
@@ -141,8 +169,15 @@
       // --- Configuration ---
       const SUPABASE_URL = 'https://gbxdhqqlbandnhvfkbtr.supabase.co';
       const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdieGRocXFsYmFuZG5odmZrYnRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxMDAwOTQsImV4cCI6MjA2MTY3NjA5NH0.W_T6oa1lSbZ-9W_E5Jo66c9ShK_FVoc1zJTZ7vir6eY';
-      const POSTS_LIMIT = 20;
-      const SITE_BASE_URL = window.location.origin; // Get base URL for sharing
+      const POSTS_PER_PAGE = 10; // Number of posts per page for pagination
+      const SITE_BASE_URL = window.location.origin + window.location.pathname.replace('index.html', ''); // Base URL for sharing/linking
+
+      // --- State Variables ---
+      let currentPage = 0; // For pagination
+      let currentCategory = 'home'; // For remembering the active category
+      let currentSearchTerm = null; // For remembering search term
+      let isLoading = false; // Prevent multiple simultaneous loads
+      let allPostsLoaded = false; // Track if all posts for current view are loaded
 
       // --- DOM References ---
       const mainContent = document.getElementById('main-content');
@@ -150,8 +185,18 @@
       const postsContainer = document.getElementById('blog-posts-container');
       const featuredPostContainer = document.getElementById('featured-post-container');
       const searchInput = document.getElementById('search-input');
-      let currentTab = 'home'; // Keep track of the active tab
-      let debounceTimer; // For search input debouncing
+      const searchContainer = document.getElementById('search-container');
+      const tabsNav = document.getElementById('tabs-nav');
+      const singlePostContainer = document.getElementById('single-post-container');
+      const singlePostContent = document.getElementById('single-post-content');
+      const relatedPostsContainer = document.getElementById('related-posts-container');
+      const relatedPostsList = document.getElementById('related-posts-list');
+      const listViewContainer = document.getElementById('list-view-container');
+      const loadMoreContainer = document.getElementById('load-more-container');
+      const loadMoreButton = document.getElementById('load-more-button');
+      const backButton = document.getElementById('back-button');
+      const statusMessageContainer = document.getElementById('status-message-container');
+
 
       // --- Functions ---
 
@@ -167,41 +212,56 @@
           }
       }
 
-      // Function to render share buttons
-      function renderShareButtons(postTitle, postSlug, container) {
-          const shareUrl = `${SITE_BASE_URL}/#post-${postSlug}`; // Simple anchor link for now
-          const encodedUrl = encodeURIComponent(shareUrl);
-          const encodedTitle = encodeURIComponent(postTitle);
+       // Function to render share buttons
+       function renderShareButtons(postTitle, postSlug, container, isSingleView = false) {
+            // Use the direct post link if on single view, otherwise link to home#post-slug
+            const shareUrl = isSingleView ? `${SITE_BASE_URL}#post-${postSlug}` : `${SITE_BASE_URL}#post-${postSlug}`;
+            const encodedUrl = encodeURIComponent(shareUrl);
+            const encodedTitle = encodeURIComponent(postTitle);
 
-          const twitterUrl = `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}`;
-          const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
-          const emailUrl = `mailto:?subject=${encodedTitle}&body=Check out this post: ${encodedUrl}`;
+            const twitterUrl = `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}`;
+            const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
+            const emailUrl = `mailto:?subject=${encodedTitle}&body=Check out this post: ${encodedUrl}`;
 
-          const buttonsHtml = `
-              <div class="share-buttons mt-4 pt-4 border-t border-gray-100">
-                  <span class="text-xs font-semibold mr-2">Share:</span>
-                  <a href="${twitterUrl}" target="_blank" rel="noopener noreferrer" class="share-twitter" title="Share on Twitter">Twitter</a>
-                  <a href="${facebookUrl}" target="_blank" rel="noopener noreferrer" class="share-facebook" title="Share on Facebook">Facebook</a>
-                  <a href="${emailUrl}" class="share-email" title="Share via Email">Email</a>
-              </div>
-          `;
-          container.insertAdjacentHTML('beforeend', buttonsHtml);
-      }
+            const buttonsHtml = `
+                <div class="share-buttons mt-4 pt-4 ${isSingleView ? '' : 'border-t border-gray-100'}">
+                    <span class="text-xs font-semibold mr-2">Share:</span>
+                    <a href="${twitterUrl}" target="_blank" rel="noopener noreferrer" class="share-twitter" title="Share on Twitter">Twitter</a>
+                    <a href="${facebookUrl}" target="_blank" rel="noopener noreferrer" class="share-facebook" title="Share on Facebook">Facebook</a>
+                    <a href="${emailUrl}" class="share-email" title="Share via Email">Email</a>
+                </div>
+            `;
+            container.innerHTML = buttonsHtml; // Replace content instead of appending
+       }
 
-       // Function to render a single post article
-       function renderPost(post, container) {
+       // Function to render a single post article (used for list, featured, and single view)
+       function renderPost(post, container, isSingleView = false) {
             const article = document.createElement('article');
-            article.className = 'blog-post bg-white p-6 rounded-lg shadow-sm mb-8 border border-gray-200';
-            article.id = `post-${post.slug}`; // Add ID for potential linking
+            // Apply different styling for single view vs list view
+            article.className = isSingleView
+                ? 'blog-post-single bg-white p-6 md:p-8 rounded-lg shadow-lg border border-gray-200' // More prominent for single view
+                : 'blog-post bg-white p-6 rounded-lg shadow-sm mb-8 border border-gray-200';
+            article.id = `post-${post.slug}`; // Add ID for linking
 
-            const title = document.createElement('h2');
-            title.className = 'blog-post-title text-2xl font-semibold text-gray-900 mb-2';
-            title.textContent = post.title || 'Untitled Post';
+            const title = document.createElement(isSingleView ? 'h1' : 'h2'); // Use H1 only for single post view title
+            title.className = isSingleView
+                ? 'blog-post-title text-3xl md:text-4xl font-bold text-gray-900 mb-3'
+                : 'blog-post-title text-2xl font-semibold text-gray-900 mb-2 hover:text-blue-600 transition duration-200';
+            // Make title a link in list view
+            if (!isSingleView) {
+                 const titleLink = document.createElement('a');
+                 titleLink.href = `#post-${post.slug}`;
+                 titleLink.textContent = post.title || 'Untitled Post';
+                 title.appendChild(titleLink);
+            } else {
+                 title.textContent = post.title || 'Untitled Post';
+            }
+
 
             const meta = document.createElement('p');
             meta.className = 'blog-post-meta text-sm text-gray-500 mb-4';
-            const categoryText = post.category ? ` | Category: ${post.category}` : '';
-            meta.textContent = `Published on: ${formatDate(post.publishedAt)}${categoryText}`;
+            const categoryText = post.category ? ` | Category: <a href="#${post.category}" class="underline hover:text-blue-600">${post.category}</a>` : '';
+            meta.innerHTML = `Published on: ${formatDate(post.publishedAt)}${categoryText}`; // Use innerHTML for category link
 
             const contentDiv = document.createElement('div');
             contentDiv.className = 'blog-post-content text-gray-700';
@@ -215,20 +275,122 @@
             article.appendChild(contentDiv);
             article.appendChild(shareContainer); // Add share container
 
+            // Clear previous content and append new article
+            container.innerHTML = '';
             container.appendChild(article);
 
-            // Render share buttons into the specific container for this post
-            renderShareButtons(post.title, post.slug, shareContainer);
+            // Render share buttons
+            renderShareButtons(post.title, post.slug, shareContainer, isSingleView);
        }
 
-      // --- MODIFIED: Function to fetch and display posts ---
-      async function loadPosts(category = null, searchTerm = null) {
-          // Show loading message
-          postsContainer.innerHTML = `<p id="status-message" class="text-center text-gray-500 italic mt-10 p-5 bg-gray-100 rounded-md">Loading posts...</p>`;
-          featuredPostContainer.innerHTML = ''; // Clear featured post area
-          featuredPostContainer.classList.add('hidden'); // Hide featured post area
+       // Function to fetch and display related posts
+       async function loadRelatedPosts(currentPostCategory, currentPostId) {
+            if (!currentPostCategory) {
+                relatedPostsContainer.classList.add('hidden');
+                return;
+            }
+            relatedPostsList.innerHTML = '<p class="text-sm text-gray-500">Loading related...</p>';
+            relatedPostsContainer.classList.remove('hidden');
 
-          let isFeaturedHandled = false;
+            try {
+                const fetchURL = `${SUPABASE_URL}/rest/v1/guides?select=title,slug&category=eq.${encodeURIComponent(currentPostCategory)}&id=neq.${currentPostId}&order=publishedAt.desc&limit=3`;
+                const response = await fetch(fetchURL, {
+                    headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
+                });
+                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                const relatedPosts = await response.json();
+
+                if (relatedPosts && relatedPosts.length > 0) {
+                    relatedPostsList.innerHTML = ''; // Clear loading
+                    const ul = document.createElement('ul');
+                    ul.className = 'list-disc list-inside text-sm';
+                    relatedPosts.forEach(post => {
+                        const li = document.createElement('li');
+                        li.className = 'mb-1';
+                        const link = document.createElement('a');
+                        link.href = `#post-${post.slug}`;
+                        link.textContent = post.title;
+                        link.className = 'text-blue-600 hover:underline';
+                        li.appendChild(link);
+                        ul.appendChild(li);
+                    });
+                    relatedPostsList.appendChild(ul);
+                } else {
+                    relatedPostsList.innerHTML = '<p class="text-sm text-gray-500">No related posts found.</p>';
+                }
+            } catch (error) {
+                 console.error("Failed to fetch related posts:", error);
+                 relatedPostsList.innerHTML = '<p class="text-sm text-red-500">Could not load related posts.</p>';
+            }
+       }
+
+      // Function to fetch and display a single post by slug
+      async function loadSinglePost(slug) {
+          showLoading('Loading post...');
+          listViewContainer.classList.add('hidden'); // Hide list view
+          singlePostContainer.classList.remove('hidden'); // Show single post view
+          searchContainer.classList.add('hidden'); // Hide search
+          tabsNav.classList.add('hidden'); // Hide tabs
+
+          try {
+              const fetchURL = `${SUPABASE_URL}/rest/v1/guides?select=*&slug=eq.${encodeURIComponent(slug)}&limit=1`;
+              const response = await fetch(fetchURL, {
+                  headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
+              });
+              if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+              const posts = await response.json();
+
+              hideLoading(); // Hide loading message
+
+              if (posts && posts.length > 0) {
+                  const post = posts[0];
+                  renderPost(post, singlePostContent, true); // Render in single post container, mark as single view
+                  document.title = `${post.title} | Daily Reads Blog`; // Update page title
+                  loadRelatedPosts(post.category, post.id); // Load related posts
+              } else {
+                  singlePostContent.innerHTML = `<p class="text-center text-red-600 mt-10 p-5 bg-red-100 rounded-md">Post not found.</p>`;
+                  relatedPostsContainer.classList.add('hidden');
+              }
+          } catch (error) {
+              console.error("Failed to fetch single post:", error);
+              hideLoading();
+              singlePostContent.innerHTML = `<p class="text-center text-red-600 mt-10 p-5 bg-red-100 rounded-md">Sorry, there was an error loading the post. Error: ${error.message}</p>`;
+              relatedPostsContainer.classList.add('hidden');
+          }
+      }
+
+      // Function to show loading message
+      function showLoading(message = "Loading...") {
+           statusMessageContainer.textContent = message;
+           statusMessageContainer.classList.remove('hidden');
+           loadMoreContainer.classList.add('hidden'); // Hide load more during loading
+      }
+      // Function to hide loading message
+      function hideLoading() {
+           statusMessageContainer.classList.add('hidden');
+      }
+
+
+      // --- MODIFIED: Function to fetch and display posts list (handles pagination) ---
+      async function loadPostsList(category = null, searchTerm = null, loadMore = false) {
+          if (isLoading) return; // Prevent concurrent loads
+          isLoading = true;
+          allPostsLoaded = loadMore ? allPostsLoaded : false; // Reset if it's not a "load more" action
+
+          if (!loadMore) {
+              currentPage = 0; // Reset page number for new category/search
+              postsContainer.innerHTML = ''; // Clear previous list posts
+              featuredPostContainer.innerHTML = ''; // Clear featured post area
+              featuredPostContainer.classList.add('hidden'); // Hide featured post area
+          }
+
+          showLoading(`Loading posts${category ? ` for ${category}` : ''}${searchTerm ? ` matching "${searchTerm}"` : ''}...`);
+          singlePostContainer.classList.add('hidden'); // Hide single post view
+          listViewContainer.classList.remove('hidden'); // Show list view
+          searchContainer.classList.remove('hidden'); // Show search
+          tabsNav.classList.remove('hidden'); // Show tabs
+
+          const offset = currentPage * POSTS_PER_PAGE;
 
           try {
               // --- Base URL and common parameters ---
@@ -240,71 +402,79 @@
 
               let posts = [];
               let fetchUrl = baseUrl; // Start with base URL
+              let isFeaturedHandled = false;
 
               // --- Handle Search ---
               if (searchTerm) {
                   console.log(`Searching for: "${searchTerm}"`);
-                  // Add search filter - searching in title only for now (case-insensitive)
                   fetchUrl += `&title=ilike.%${encodeURIComponent(searchTerm)}%`;
-                  fetchUrl += `&limit=${POSTS_LIMIT}`; // Apply limit for search results
+                  fetchUrl += `&limit=${POSTS_PER_PAGE}&offset=${offset}`; // Apply pagination
               }
               // --- Handle Categories / Home ---
               else {
                   // Filter by category if not 'home'
                   if (category && category.toLowerCase() !== 'home') {
                       fetchUrl += `&category=eq.${encodeURIComponent(category)}`;
-                      fetchUrl += `&limit=${POSTS_LIMIT}`; // Apply limit for category results
+                      fetchUrl += `&limit=${POSTS_PER_PAGE}&offset=${offset}`; // Apply pagination
                       console.log(`Fetching category: ${category}`);
                   }
                   // Handle 'home' tab - potential featured post logic
                   else {
                       console.log("Fetching latest posts (Home)");
-                      // 1. Fetch the single latest post for the featured section
-                      const featuredUrl = `${baseUrl}&limit=1`;
-                      const featuredResponse = await fetch(featuredUrl, { headers });
-                      if (!featuredResponse.ok) throw new Error(`HTTP error! Status: ${featuredResponse.status} (featured)`);
-                      const featuredData = await featuredResponse.json();
+                      // Only show featured post on the *first* page load of Home
+                      if (currentPage === 0) {
+                          const featuredUrl = `${baseUrl}&limit=1`;
+                          const featuredResponse = await fetch(featuredUrl, { headers });
+                          if (!featuredResponse.ok) throw new Error(`HTTP error! Status: ${featuredResponse.status} (featured)`);
+                          const featuredData = await featuredResponse.json();
 
-                      if (featuredData && featuredData.length > 0) {
-                          const featuredPost = featuredData[0];
-                          console.log("Rendering featured post:", featuredPost.title);
-                          renderPost(featuredPost, featuredPostContainer); // Render into featured container
-                          featuredPostContainer.classList.remove('hidden'); // Show featured container
-                          isFeaturedHandled = true;
-
-                          // 2. Fetch the *rest* of the posts for the main list (offset by 1)
-                          fetchUrl += `&limit=${POSTS_LIMIT}&offset=1`; // Get next N posts
+                          if (featuredData && featuredData.length > 0) {
+                              const featuredPost = featuredData[0];
+                              console.log("Rendering featured post:", featuredPost.title);
+                              renderPost(featuredPost, featuredPostContainer); // Render into featured container
+                              featuredPostContainer.classList.remove('hidden'); // Show featured container
+                              isFeaturedHandled = true;
+                              // Adjust offset for main list if featured post is shown
+                              fetchUrl += `&limit=${POSTS_PER_PAGE}&offset=${offset + 1}`;
+                          } else {
+                              // No posts found at all, just apply limit for the main fetch
+                               fetchUrl += `&limit=${POSTS_PER_PAGE}&offset=${offset}`;
+                          }
                       } else {
-                          // No posts found at all, just apply limit for the main fetch
-                           fetchUrl += `&limit=${POSTS_LIMIT}`;
+                           // Not the first page of home, fetch normally with offset
+                           fetchUrl += `&limit=${POSTS_PER_PAGE}&offset=${offset + (isFeaturedHandled ? 1 : 0)}`; // Adjust offset if featured was shown on page 0
                       }
                   }
               }
 
-              // --- Execute the main fetch (unless featured post was the only one) ---
-              if (!isFeaturedHandled || (category && category.toLowerCase() !== 'home') || searchTerm || !isFeaturedHandled) {
-                   const response = await fetch(fetchUrl, { headers });
-                   if (!response.ok) {
-                       throw new Error(`HTTP error! Status: ${response.status} ${response.statusText}`);
-                   }
-                   posts = await response.json();
-              } else {
-                  // If featured post was handled and it's home tab with no search,
-                  // the 'posts' array for the main list is empty.
-                  posts = [];
+              // --- Execute the main fetch for the list ---
+              const response = await fetch(fetchUrl, { headers });
+              if (!response.ok) {
+                  throw new Error(`HTTP error! Status: ${response.status} ${response.statusText}`);
               }
-
+              posts = await response.json();
 
               // --- Render results ---
-              postsContainer.innerHTML = ''; // Clear loading message
+              hideLoading(); // Hide loading message
 
-              if ((isFeaturedHandled && posts.length > 0) || (!isFeaturedHandled && posts.length > 0)) {
+              if (posts && posts.length > 0) {
                     console.log(`Loaded ${posts.length} posts for the list.`);
                     posts.forEach(post => {
-                        renderPost(post, postsContainer); // Render into main list container
+                        renderPost(post, postsContainer, false); // Render into main list container
                     });
-              } else if (!isFeaturedHandled && posts.length === 0) {
-                  // Only show "no posts" if featured wasn't handled either
+                    currentPage++; // Increment page number for next load
+                    // Show "Load More" button if we received a full page of results
+                    if (posts.length >= POSTS_PER_PAGE) {
+                        loadMoreContainer.classList.remove('hidden');
+                        allPostsLoaded = false;
+                    } else {
+                        loadMoreContainer.classList.add('hidden'); // Hide if fewer posts than limit were returned
+                        allPostsLoaded = true;
+                        console.log("All posts loaded for this view.");
+                    }
+              } else if (currentPage === 0 && !isFeaturedHandled) {
+                  // No posts found on the first load (and no featured post)
+                  postsContainer.innerHTML = ''; // Clear just in case
                   const noPostsMessage = document.createElement('p');
                   noPostsMessage.className = 'text-center text-gray-500 italic mt-10 p-5 bg-gray-100 rounded-md';
                   let message = 'No blog posts found yet. Please check back later!';
@@ -315,24 +485,41 @@
                   }
                   noPostsMessage.textContent = message;
                   postsContainer.appendChild(noPostsMessage);
+                  loadMoreContainer.classList.add('hidden'); // Hide load more
+                  allPostsLoaded = true;
                   console.log("No posts found in Supabase table for the current filter.");
-              } else if (isFeaturedHandled && posts.length === 0) {
-                  console.log("Only the featured post was found.");
-                  // Optionally add a message like "No older posts found."
+              } else {
+                    // No *more* posts found when clicking "Load More"
+                    loadMoreContainer.classList.add('hidden');
+                    allPostsLoaded = true;
+                    console.log("No more posts to load for this view.");
+                     if (currentPage > 0) { // Add a message only if it's not the first page
+                         const noMorePosts = document.createElement('p');
+                         noMorePosts.className = 'text-center text-gray-400 text-sm mt-4';
+                         noMorePosts.textContent = 'No more posts available.';
+                         postsContainer.appendChild(noMorePosts);
+                     }
               }
 
           } catch (error) {
               console.error("Failed to fetch or process posts from Supabase:", error);
+              hideLoading();
+              // Show error in the main posts container if list fails
               postsContainer.innerHTML = `<p id="status-message" class="text-center text-red-600 mt-10 p-5 bg-red-100 rounded-md">Sorry, there was an error loading posts. Please try refreshing the page later. Error: ${error.message}</p>`;
               featuredPostContainer.innerHTML = ''; // Clear featured on error too
               featuredPostContainer.classList.add('hidden');
+              loadMoreContainer.classList.add('hidden');
+          } finally {
+               isLoading = false; // Reset loading flag
           }
       }
+
 
       // Function to switch tabs
       function switchTab(tabId) {
           currentTab = tabId; // Update current tab state
-          searchInput.value = ''; // Clear search input when switching tabs
+          currentSearchTerm = null; // Clear search term when switching tabs
+          searchInput.value = ''; // Clear search input visually
 
           // Deactivate all tab links
           tabLinks.forEach(link => {
@@ -347,17 +534,47 @@
               activeLink.classList.remove('border-transparent', 'hover:text-gray-600', 'hover:border-gray-300');
           }
 
-          // Load content based on the tabId ('home' or the category name)
-          loadPosts(tabId === 'home' ? null : tabId, null); // Load posts for the tab, clear search term
+          // Load content list for the tab
+          loadPostsList(tabId === 'home' ? null : tabId, null, false);
+      }
+
+      // Function to handle URL hash changes (routing)
+      function handleRouteChange() {
+            const hash = window.location.hash;
+            console.log("Hash changed:", hash);
+
+            if (hash.startsWith('#post-')) {
+                const slug = hash.substring(6); // Get slug after #post-
+                loadSinglePost(slug);
+            } else if (hash.startsWith('#') && hash.length > 1) {
+                const tabId = hash.substring(1); // Get tab ID (category name)
+                // Check if it's a valid tab before switching
+                const validTab = document.getElementById(`tab-${tabId}`);
+                if (validTab) {
+                    switchTab(tabId);
+                } else {
+                    // Fallback to home if hash is invalid tab
+                    switchTab('home');
+                    window.location.hash = 'home'; // Update hash
+                }
+            } else {
+                // Default to home tab if no valid hash
+                switchTab('home');
+                 // Optionally update hash to #home if it's missing or just #
+                 if (window.location.hash !== '#home') {
+                     // Use replaceState to avoid adding to history for the default load
+                     history.replaceState(null, '', '#home');
+                 }
+            }
       }
 
       // --- Event Listeners ---
-      // Tab switching
+      // Tab switching (now updates hash, triggering route change)
       tabLinks.forEach(link => {
           link.addEventListener('click', (event) => {
-              event.preventDefault();
-              const tabId = event.target.getAttribute('data-tab');
-              switchTab(tabId);
+              // No preventDefault needed, let the hash change
+              // const tabId = event.target.getAttribute('data-tab');
+              // handleRouteChange will handle the logic
           });
       });
 
@@ -365,29 +582,50 @@
       searchInput.addEventListener('input', (event) => {
           clearTimeout(debounceTimer);
           const searchTerm = event.target.value.trim();
+          currentSearchTerm = searchTerm; // Store current search term
 
           debounceTimer = setTimeout(() => {
-              if (searchTerm.length > 2 || searchTerm.length === 0) {
-                  console.log(`Debounced search: ${searchTerm}`);
-                  // When searching, override category and load all matching posts
-                  loadPosts(null, searchTerm);
-                  // Optionally deactivate tabs visually during search
-                   if(searchTerm.length > 0) {
-                        tabLinks.forEach(link => {
-                            link.classList.remove('tab-active', 'text-blue-600', 'border-blue-600');
-                            link.classList.add('border-transparent', 'hover:text-gray-600', 'hover:border-gray-300');
-                        });
-                   } else {
-                       // If search is cleared, switch back to the last active tab
-                       switchTab(currentTab);
-                   }
-              }
+              // When searching, load the list view, clearing category
+              // Update hash to reflect search state? Optional. For now, just load results.
+              loadPostsList(null, searchTerm, false);
+
+               // Visually deactivate tabs during search
+               if(searchTerm.length > 0) {
+                    tabLinks.forEach(link => {
+                        link.classList.remove('tab-active', 'text-blue-600', 'border-blue-600');
+                        link.classList.add('border-transparent', 'hover:text-gray-600', 'hover:border-gray-300');
+                    });
+               } else {
+                   // If search is cleared, reload the current tab's content
+                   switchTab(currentTab); // Reloads list for the active tab
+               }
+
           }, 500); // Wait 500ms after user stops typing
       });
 
+      // Load More button
+      loadMoreButton.addEventListener('click', () => {
+          if (!isLoading && !allPostsLoaded) {
+              // Load next page for the current view (category or search)
+              loadPostsList(currentCategory === 'home' ? null : currentCategory, currentSearchTerm, true);
+          }
+      });
+
+      // Back button (from single post view)
+      backButton.addEventListener('click', () => {
+          // Go back in history, which should trigger handleRouteChange
+          // or directly navigate to the last known list view hash
+          const previousHash = `#${currentCategory}`; // Assumes currentCategory holds the last list view
+          window.location.hash = previousHash;
+          // If history state needs more complex management, consider pushState/replaceState
+      });
+
+      // Listen for hash changes to handle routing
+      window.addEventListener('hashchange', handleRouteChange);
+
 
       // --- Initial Load ---
-      switchTab('home'); // Load home posts by default
+      handleRouteChange(); // Handle initial route based on URL hash on load
 
       // --- AdSense Initialization ---
       if (typeof adsbygoogle !== 'undefined') {
@@ -404,3 +642,25 @@
     </script>
 </body>
 </html>
+```
+
+**Summary & Next Steps:**
+
+1.  **Update Files:** Replace the content of your local `scripts/generate_guide.py` and `public/index.html` with the code provided in the documents above (`generate_guide_py_v17`, `index_html_v7`).
+2.  **Commit and Push:** Commit both changed files to your GitHub repository.
+    ```bash
+    git add scripts/generate_guide.py public/index.html
+    git commit -m "feat: Add RSS feed, pagination, single post view, related posts"
+    git push
+    ```
+3.  **Check Render Deployment:** Wait for the new deployment of the frontend (`index.html`) to go live on Render.
+4.  **Verify Website:**
+    * Visit your site (`https://daily-reads-2nng.onrender.com/`) and hard refresh (`Ctrl+Shift+R`).
+    * **Home/Categories:** Check if the "Home" and category tabs load posts. If you have more than `POSTS_PER_PAGE` (currently 10) in a view, you should see the "Load More" button. Click it to test pagination.
+    * **Single Post View:** Click on a post title in the list. The URL should change to include `#post-{slug}`, and only that post should be displayed, along with a "Back to list" button and potentially a "Related Posts" section below it (if other posts in the same category exist).
+    * **Related Posts:** Verify the related posts section appears on single post views and links correctly.
+    * **Share Buttons:** Check if the share buttons on the single post view use the correct `#post-{slug}` URL.
+    * **Back Button:** Test the "Back to list" button on the single post view.
+    * **RSS Feed:** Try navigating to `https://daily-reads-2nng.onrender.com/rss.xml`. You should see the generated XML feed. Check the links within the feed point to the `#post-{slug}` URLs.
+
+This is a large update with many interacting parts. Test thoroughly! Let me know if anything doesn't work as expect
