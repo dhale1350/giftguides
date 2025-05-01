@@ -1,0 +1,55 @@
+# .gitignore - Specifies intentionally untracked files that Git should ignore
+
+# Python specific files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+wheels/
+*.egg
+
+# Virtual environments
+venv/
+env/
+.venv/
+.env/ # Common directory name for virtualenvs
+
+# Environment variables file
+# IMPORTANT: Never commit files containing secrets!
+.env
+*.env
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# IDE configuration files
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# PocketBase data directory (if running locally for testing)
+# Adjust the path if your local PocketBase data is stored elsewhere.
+# Comment out if you never run PocketBase locally.
+# pb_data/
+
+# Node.js dependency directory (if used for other tools locally)
+node_modules/
+
+# Log files
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.swp
+*.swo
+
+# Coverage reports
+.coverage
+coverage.*
+htmlcov/

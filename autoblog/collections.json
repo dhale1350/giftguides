@@ -1,0 +1,72 @@
+{
+  "collections": [
+    {
+      "id": "guides_collection",
+      "name": "guides",
+      "type": "base",
+      "system": false,
+      "schema": [
+        {
+          "id": "guide_title",
+          "name": "title",
+          "type": "text",
+          "system": false,
+          "required": true,
+          "unique": false,
+          "options": {
+            "min": null,
+            "max": null,
+            "pattern": ""
+          }
+        },
+        {
+          "id": "guide_slug",
+          "name": "slug",
+          "type": "text",
+          "system": false,
+          "required": true,
+          "unique": true,
+          "options": {
+            "min": null,
+            "max": null,
+            "pattern": ""
+          }
+        },
+        {
+          "id": "guide_content",
+          "name": "contentHTML",
+          "type": "text",
+          "system": false,
+          "required": true,
+          "unique": false,
+          "options": {
+            "min": null,
+            "max": null,
+            "pattern": ""
+          }
+        },
+        {
+          "id": "guide_published_at",
+          "name": "publishedAt",
+          "type": "datetime",
+          "system": false,
+          "required": true,
+          "unique": false,
+          "options": {
+            "min": "",
+            "max": ""
+          }
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX `idx_guides_slug` ON `guides` (`slug`)"
+      ],
+      "listRule": "",
+      "viewRule": "",
+      "createRule": null,
+      "updateRule": null,
+      "deleteRule": null,
+      "options": {}
+    }
+  ]
+}
