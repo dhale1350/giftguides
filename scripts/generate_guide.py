@@ -1,7 +1,8 @@
 # scripts/generate_guide.py
-# Python script to generate daily blog content on a dynamic topic using Vertex AI Gemini
-# and save it to a Supabase database table.
-# Version 4: Added cleanup for markdown code fences in HTML output.
+# Python script to generate daily blog content using Vertex AI Gemini,
+# automatically fetch relevant images from Pixabay,
+# and save the final HTML to a Supabase database table.
+# Version 7: Pixabay API integration.
 
 # --- START DEBUGGING ---
 import os
@@ -37,10 +38,11 @@ else:
 print("--- DEBUGGING END ---")
 # --- END DEBUGGING ---
 
-# --- Original Imports ---
+# --- Imports ---
 import datetime
 import re
 import random
+import requests # Added for making API calls to Pixabay
 try:
     # Import the necessary Google Cloud libraries for Vertex AI
     from google.cloud import aiplatform
@@ -63,52 +65,50 @@ try:
     SUPABASE_SERVICE_KEY = os.environ['SUPABASE_SERVICE_KEY']
     # Get Google Cloud project details from environment variables
     GCP_PROJECT = os.environ['GCP_PROJECT']
-    GCP_LOCATION = os.environ['GCP_LOCATION'] # Recommended: us-central1 for broader model access
+    GCP_LOCATION = os.environ['GCP_LOCATION'] # e.g., us-central1
+
+    # *** IMPORTANT: Add your Pixabay API Key as a GitHub Secret ***
+    PIXABAY_API_KEY = os.environ['PIXABAY_API_KEY']
 
     # Using gemini-2.0-flash-001 as it was confirmed working
     GEMINI_MODEL_NAME = "gemini-2.0-flash-001"
-    GEMINI_TOPIC_MODEL_NAME = os.getenv('GEMINI_TOPIC_MODEL_NAME', "gemini-2.0-flash-001") # Use the same model for topic generation
+    GEMINI_TOPIC_MODEL_NAME = os.getenv('GEMINI_TOPIC_MODEL_NAME', "gemini-2.0-flash-001")
 
 except KeyError as e:
-    print(f"Error: Environment variable {e} not set. Check GitHub Secrets or local environment setup.")
+    print(f"Error: Environment variable {e} not set. Check GitHub Secrets (including PIXABAY_API_KEY) or local environment setup.")
     sys.exit(1)
 
 # --- Supabase Interaction Function ---
 def save_guide_to_supabase(supabase: Client, title: str, slug: str, content_html: str):
-    """Saves the generated guide data as a new row in the Supabase 'guides' table."""
+    """Saves the generated and image-processed guide data to Supabase."""
     print(f"Attempting to save guide '{title}' to Supabase table 'guides'...")
     try:
         # Prepare the data payload for insertion
         data_to_insert = {
             "title": title,
             "slug": slug,
-            "contentHTML": content_html, # Save the cleaned HTML
+            "contentHTML": content_html, # Save the HTML with real images
             # Record the publication time in UTC ISO format
             "publishedAt": datetime.datetime.now(datetime.timezone.utc).isoformat()
         }
         # Execute the insert operation on the 'guides' table
         response = supabase.table('guides').insert(data_to_insert).execute()
-        # Check if the insertion was successful (Supabase API v2+ returns data on success)
+        # Check if the insertion was successful
         if response.data:
              print(f"Guide saved successfully to Supabase. Response Data: {response.data}")
              return response.data
         else:
-             # Handle potential errors not caught by exceptions (e.g., RLS issues if key is wrong)
+             # Handle potential errors not caught by exceptions
              print(f"Warning: Supabase insertion executed but returned no data. Check response: {response}")
-             # Consider how to handle this - maybe retry or log differently
-             # For now, we'll exit as it indicates a problem saving the data.
              sys.exit(1)
-
     except Exception as e:
         # Catch any other exceptions during the Supabase interaction
         print(f"Error: Failed to save guide to Supabase: {e}")
-        # Exit the script if saving fails, as the core task cannot be completed
         sys.exit(1)
 
 # --- Gemini Interaction Functions ---
 def call_gemini_api(model_name: str, prompt: str, generation_config: dict):
     """Generic function to call the Vertex AI Gemini API and return the text response."""
-    # Note: Assumes aiplatform.init() was called successfully in main()
     print(f"Calling Vertex AI Gemini model: {model_name} in {GCP_LOCATION}...")
     try:
         # Instantiate the specific generative model
@@ -119,24 +119,18 @@ def call_gemini_api(model_name: str, prompt: str, generation_config: dict):
             generation_config=generation_config,
         )
         print(f"Received response from Gemini model {model_name}.")
-
         # Extract the text content from the response
-        # Different response structures might exist, attempt common patterns
         if hasattr(response, 'text'):
-            # Direct text attribute (common)
             return response.text
         elif response.candidates and response.candidates[0].content and response.candidates[0].content.parts:
-             # Text might be split into parts within the first candidate
              return "".join(part.text for part in response.candidates[0].content.parts)
         else:
             # Log an error if text cannot be extracted
             print(f"Error: Could not extract text from Gemini response for model {model_name}. Response: {response}")
             return None # Indicate failure
-
     except Exception as e:
-        # Catch potential API errors (like 404 Not Found, 429 Quota Exceeded, 403 Permission Denied, etc.)
+        # Catch potential API errors
         print(f"Error: An exception occurred during the Vertex AI API call for model {model_name}: {e}")
-        # Consider adding more specific error handling based on exception type if needed
         return None # Indicate failure
 
 def get_topic_from_gemini():
@@ -147,16 +141,12 @@ def get_topic_from_gemini():
     The topic should be engaging but not overly controversial. Output only the topic suggestion itself, without any extra text like 'Here is a topic:'."""
     # Define generation parameters for the topic suggestion
     topic_generation_config = {
-        "temperature": 0.8,         # Higher temperature for more creative/varied topics
-        "max_output_tokens": 100,   # Limit the length of the topic
-        "top_p": 0.95,              # Nucleus sampling
-        "top_k": 40                 # Top-k sampling
+        "temperature": 0.8, "max_output_tokens": 100, "top_p": 0.95, "top_k": 40
     }
-    # Call the Gemini API using the configured topic model
+    # Call the Gemini API
     topic = call_gemini_api(GEMINI_TOPIC_MODEL_NAME, topic_prompt, topic_generation_config)
-
     if topic:
-        # Clean up the received topic (remove leading/trailing whitespace and quotes)
+        # Clean up the received topic
         topic = topic.strip().strip('"').strip("'").strip()
         print(f"Suggested topic received: '{topic}'")
         return topic
@@ -183,12 +173,11 @@ def clean_html_output(html_content):
     return cleaned_content
 
 def get_content_for_topic(topic: str):
-    """Generates and cleans the main blog post HTML content for the given topic using Gemini."""
+    """Generates the main blog post HTML content (with Pixabay image placeholders) for the given topic using Gemini."""
     print(f"Requesting blog post content for topic: '{topic}'...")
-    # Get today's date for potential inclusion or context (though not used in prompt here)
-    today_str_display = datetime.date.today().strftime('%d %B %Y')
 
-    # Define the detailed prompt for generating the blog post HTML
+    # --- MODIFIED PROMPT for Pixabay ---
+    # Asking Gemini to insert placeholder comments instead of <img> tags.
     content_prompt = f"""Please write a high-quality, engaging blog post suitable for a UK audience, approximately 800-1000 words long.
 The exact title must be: "{topic}"
 
@@ -196,48 +185,122 @@ The output format must be **HTML only**, ready to be embedded directly into the 
 
 **HTML Requirements:**
 * Start directly with a single `<h1>` tag containing the exact title: "{topic}". Do not add any text before this tag.
-* Structure the content logically using `<h2>` tags for main sections and `<p>` tags for paragraphs. Use standard semantic HTML.
-* You may use `<strong>` or `<em>` for emphasis where appropriate.
-* You may include relevant, generic images using `<img>` tags with descriptive `alt` text. Use placeholder image URLs like `https://placehold.co/600x400/eee/ccc?text=Relevant+Image+Placeholder`. Ensure all `<img>` tags have an `alt` attribute.
-* Do NOT include `<head>`, `<body>`, `<html>`, `<!DOCTYPE>`, or `<style>` tags. The output must be only the HTML fragment for the article content itself.
-* Ensure lists are correctly formatted using `<ul>` or `<ol>` with `<li>` tags.
-
-**Content Requirements:**
-* Thoroughly explore the topic: "{topic}".
-* Maintain an informative, helpful, and slightly informal tone suitable for a general UK audience.
-* Ensure the content sounds original and provides genuine value to the reader.
-* **Crucially: DO NOT include any pricing, purchasing links, affiliate links, 'buy now' buttons, discount codes, or specific retailer mentions.** Focus purely on the topic information.
+* Structure the content logically using `<h2>` tags for main sections and `<p>` tags for paragraphs. Use standard semantic HTML (`<strong>`, `<em>`, `<ul>`, `<ol>`, `<li>`).
+* **IMPORTANT IMAGE INSTRUCTION:** Where a relevant image would enhance the content (e.g., after an introductory section or illustrating a key point), insert an HTML comment placeholder in the format: ``. For example: ``. Use 1-3 such placeholders where appropriate. Do NOT include any `<img>` tags yourself.
+* Do NOT include `<head>`, `<body>`, `<html>`, `<!DOCTYPE>`, or `<style>` tags.
+* Do NOT include pricing, purchasing links, affiliate links, 'buy now' buttons, discount codes, or specific retailer mentions.
 * Do not include author bylines, publication dates, or comment sections within the generated HTML content itself.
-* Ensure the final output is a well-formed, valid HTML fragment starting with `<h1>` and containing only the blog post content.
+* Ensure the final output is a well-formed, valid HTML fragment starting with `<h1>`.
 """
     # Define generation parameters for the main content
     content_generation_config = {
-        "temperature": 0.7,         # Slightly lower temperature for more focused content
-        "max_output_tokens": 8192,  # Allow for longer content (max possible for many models)
-        "top_p": 0.95,              # Nucleus sampling
-        "top_k": 40                 # Top-k sampling
+        "temperature": 0.7, "max_output_tokens": 8192, "top_p": 0.95, "top_k": 40
     }
-    # Call the Gemini API using the configured main content model
-    raw_html_content = call_gemini_api(GEMINI_MODEL_NAME, content_prompt, content_generation_config)
+    # Call the Gemini API
+    html_with_placeholders = call_gemini_api(GEMINI_MODEL_NAME, content_prompt, content_generation_config)
 
-    if raw_html_content:
-        # *** ADDED CLEANUP STEP ***
-        cleaned_html_content = clean_html_output(raw_html_content)
-
-        # Basic validation on the *cleaned* content
-        if not cleaned_html_content or not cleaned_html_content.strip().lower().startswith('<h1>'):
-             print("Warning: Cleaned HTML content is empty or does not start with <h1> as expected.")
-             # Fallback or exit if cleaning resulted in bad content
-             # For now, we'll proceed but this might need more robust handling
-        
-        return cleaned_html_content # Return the cleaned HTML
+    if html_with_placeholders:
+        # Basic validation
+        if not html_with_placeholders.strip().lower().startswith('<h1>'):
+             print("Warning: Generated HTML content does not start with <h1> as expected.")
+        return html_with_placeholders
     else:
         # Handle failure to generate content
         print("Error: Failed to generate main blog content from Gemini.")
-        # Exit the script if content generation fails
         sys.exit(1)
 
+# --- Pixabay Image Integration ---
+def search_pixabay_image(query: str, api_key: str):
+    """Searches Pixabay for an image based on the query and returns URL and alt text."""
+    print(f"Searching Pixabay for: '{query}'")
+    pixabay_api_url = "https://pixabay.com/api/"
+    params = {
+        "key": api_key,
+        "q": query,
+        "image_type": "photo", # Focus on photos
+        "orientation": "horizontal", # Prefer landscape
+        "safesearch": "true", # Enable safe search
+        "per_page": 3 # Get a few options just in case the first isn't ideal
+    }
+
+    try:
+        response = requests.get(pixabay_api_url, params=params, timeout=10) # Added timeout
+        response.raise_for_status() # Raise an exception for bad status codes (4xx or 5xx)
+
+        data = response.json()
+
+        if data and data.get("hits"):
+            # Simple approach: Take the first hit
+            image_data = data["hits"][0]
+            image_url = image_data.get("webformatURL") # Or "largeImageURL" for higher res
+            # Use Pixabay tags or the original query as alt text basis
+            alt_text = image_data.get("tags", query) 
+
+            if image_url:
+                print(f"Found Pixabay image: {image_url}")
+                return {
+                    "url": image_url,
+                    "alt": alt_text.replace('"', '&quot;') # Basic sanitization for alt attribute
+                }
+            else:
+                 print("Warning: Found Pixabay hit but missing image URL.")
+                 return None
+        else:
+            print(f"Warning: No image results found on Pixabay for '{query}'. Response: {data}")
+            return None
+
+    except requests.exceptions.RequestException as e:
+        print(f"Error calling Pixabay API: {e}")
+        return None
+    except Exception as e:
+        print(f"Error processing Pixabay response: {e}")
+        return None
+
+def find_and_replace_pixabay_placeholders(html_content: str, pixabay_key: str) -> str:
+    """Finds placeholders and replaces them with actual images."""
+    if not html_content:
+        return ""
+
+    # Regex to find the placeholder comments and capture the keywords
+    placeholder_pattern = r""
+
+    processed_html = html_content
+
+    # Find all occurrences of the placeholder
+    matches = re.findall(placeholder_pattern, html_content)
+
+    if not matches:
+        print("No image placeholders found in the generated HTML.")
+        return html_content # Return original content if no placeholders
+
+    print(f"Found {len(matches)} image placeholders to process.")
+
+    for keywords in matches:
+        print(f"Processing placeholder for keywords: '{keywords}'")
+        image_info = search_pixabay_image(keywords, pixabay_key)
+
+        if image_info:
+            # Construct the replacement HTML snippet (simpler than Unsplash, no figcaption needed by default)
+            # Added some basic styling classes assuming Tailwind might be available on the frontend
+            replacement_html = f"""
+<div class="my-6 text-center">
+    <img src="{image_info['url']}" alt="{image_info['alt']}" class="max-w-full h-auto mx-auto rounded-lg shadow-md">
+</div>
+"""
+            # Replace the *first* occurrence of the placeholder for these keywords
+            placeholder_to_replace = f""
+            processed_html = processed_html.replace(placeholder_to_replace, replacement_html, 1)
+            print(f"Replaced placeholder for '{keywords}' with Pixabay image.")
+        else:
+            # If no image found, just remove the placeholder comment
+            print(f"Removing placeholder for '{keywords}' as no image was found.")
+            placeholder_to_replace = f""
+            processed_html = processed_html.replace(placeholder_to_replace, "", 1) # Remove the comment
+
+    return processed_html
+
 # --- Helper Functions ---
+# (extract_title and generate_slug remain the same)
 def extract_title(html_content, default_title):
     """Extracts the content of the first H1 tag from HTML using regex."""
     # Ensure html_content is not None before processing
@@ -313,7 +376,7 @@ def generate_slug(title):
 
 # --- Main Execution Logic ---
 def main():
-    """Main function to orchestrate the blog post generation process."""
+    """Main function to orchestrate the blog post generation and Pixabay image processing."""
     print(f"--- Starting Daily Blog Post Generation: {datetime.datetime.now(datetime.timezone.utc)} UTC ---")
 
     # Initialize Supabase Client
@@ -322,38 +385,36 @@ def main():
         print("Supabase client initialized successfully.")
     except Exception as e:
         print(f"Error initializing Supabase client: {e}")
-        sys.exit(1) # Exit if Supabase connection fails
+        sys.exit(1)
 
     # Initialize Vertex AI Client
     try:
-         # This uses Application Default Credentials (ADC) provided by
-         # GOOGLE_APPLICATION_CREDENTIALS (local) or google-github-actions/setup-gcloud (Actions)
+         # This uses Application Default Credentials (ADC)
          aiplatform.init(project=GCP_PROJECT, location=GCP_LOCATION)
          print("Vertex AI initialized successfully.")
     except Exception as e:
-         # Catch errors during Vertex AI initialization (e.g., invalid credentials, project not found)
-         print(f"Error initializing Vertex AI (check credentials/permissions/project ID/location): {e}")
-         sys.exit(1) # Exit if Vertex AI connection fails
+         # Catch errors during Vertex AI initialization
+         print(f"Error initializing Vertex AI: {e}")
+         sys.exit(1)
 
     # Step 1: Get Topic Suggestion from AI
     suggested_topic = get_topic_from_gemini()
-    # The get_topic_from_gemini function now returns a fallback, so no need to check for None here unless the fallback itself is problematic.
 
-    # Step 2: Generate Main Content based on the suggested topic
-    generated_html_content = get_content_for_topic(suggested_topic)
-    # The get_content_for_topic function now exits on failure and includes cleanup.
+    # Step 2: Generate Main Content (with image placeholders)
+    html_with_placeholders = get_content_for_topic(suggested_topic)
 
-    # Step 3: Process the generated content
-    # Extract the title from the H1 tag (using the suggested topic as fallback)
-    # Use the *cleaned* HTML content for title extraction
-    extracted_title = extract_title(generated_html_content, suggested_topic)
-    # Generate a URL-friendly slug from the extracted title
+    # Step 3: Clean potential markdown fences
+    cleaned_html_with_placeholders = clean_html_output(html_with_placeholders)
+
+    # Step 4: Find image placeholders and replace them with Pixabay images
+    final_html_content = find_and_replace_pixabay_placeholders(cleaned_html_with_placeholders, PIXABAY_API_KEY)
+
+    # Step 5: Process the final content for title and slug
+    extracted_title = extract_title(final_html_content, suggested_topic)
     post_slug = generate_slug(extracted_title)
 
-    # Step 4: Save the processed data to Supabase
-    # Pass the *cleaned* HTML content to be saved
-    save_guide_to_supabase(supabase_client, extracted_title, post_slug, generated_html_content)
-    # The save_guide_to_supabase function now exits on failure.
+    # Step 6: Save the final data (with real images) to Supabase
+    save_guide_to_supabase(supabase_client, extracted_title, post_slug, final_html_content)
 
     print(f"--- Daily Blog Post Generation Finished Successfully: {datetime.datetime.now(datetime.timezone.utc)} UTC ---")
 
