@@ -6,13 +6,16 @@ import os
 import datetime
 import re
 import sys
-import random # To add slight variation if needed
+import random
 
 # --- Google Cloud / Vertex AI Libraries ---
 try:
+    # Correct way to import the specific model class
     from google.cloud import aiplatform
+    # Import GenerativeModel specifically
+    from vertexai.generative_models import GenerativeModel, Part # Corrected import path
 except ImportError as e:
-    print(f"Error: Missing required Google Cloud libraries. Did you install requirements.txt? {e}")
+    print(f"Error: Missing required Google Cloud/Vertex AI libraries. Did you install requirements.txt? {e}")
     sys.exit(1)
 
 # --- Supabase Client Library ---
@@ -24,18 +27,17 @@ except ImportError as e:
 
 # --- Configuration from Environment Variables ---
 try:
-    SUPABASE_URL = os.environ['SUPABASE_URL']
-    SUPABASE_SERVICE_KEY = os.environ['SUPABASE_SERVICE_KEY']
+    SUPABASE_URL = os.environ['SUPABASE_URL'].rstrip('/')
+    SUPABASE_SERVICE_KEY = os.environ['SUPABASE_SERVICE_KEY'] # Service Role Key
     GCP_PROJECT = os.environ['GCP_PROJECT']
-    GCP_LOCATION = os.environ['GCP_LOCATION']
-    GEMINI_MODEL_NAME = "gemini-1.5-flash-preview-0514" # Model for content generation
-    # Optional: Use a potentially faster/cheaper model just for topic suggestion
-    GEMINI_TOPIC_MODEL_NAME = os.getenv('GEMINI_TOPIC_MODEL_NAME', GEMINI_MODEL_NAME)
+    GCP_LOCATION = os.environ['GCP_LOCATION'] # e.g., 'europe-west2'
+    GEMINI_MODEL_NAME = "gemini-1.5-flash-preview-0514" # Main model
+    GEMINI_TOPIC_MODEL_NAME = os.getenv('GEMINI_TOPIC_MODEL_NAME', GEMINI_MODEL_NAME) # Model for topic suggestion
 except KeyError as e:
     print(f"Error: Environment variable {e} not set. Check GitHub Secrets.")
     sys.exit(1)
 
-# --- Supabase Interaction Function (Same as before) ---
+# --- Supabase Interaction Function (No changes needed) ---
 def save_guide_to_supabase(supabase: Client, title: str, slug: str, content_html: str):
     """Saves the generated guide data as a new row in the Supabase 'guides' table."""
     print(f"Attempting to save guide '{title}' to Supabase table 'guides'...")
@@ -59,60 +61,54 @@ def call_gemini_api(model_name: str, prompt: str, generation_config: dict):
     """Generic function to call the Gemini API and return the text response."""
     print(f"Calling Vertex AI Gemini model: {model_name} in {GCP_LOCATION}...")
     try:
-        # Initialize here or reuse client if possible (depends on library specifics)
-        # aiplatform.init(project=GCP_PROJECT, location=GCP_LOCATION) # Ensure initialized
-        model = aiplatform.GenerativeModel(model_name)
-        response = model.generate_content(prompt, generation_config=generation_config)
+        # aiplatform.init should have been called in main() before this
+        # Instantiate the model using the correctly imported class
+        model = GenerativeModel(model_name) # Use the imported class directly
+
+        # Send the prompt to the model
+        response = model.generate_content(
+            prompt,
+            generation_config=generation_config,
+        )
         print(f"Received response from Gemini model {model_name}.")
 
+        # Process the response
         if hasattr(response, 'text'):
             return response.text
         elif response.candidates and response.candidates[0].content and response.candidates[0].content.parts:
              return "".join(part.text for part in response.candidates[0].content.parts)
         else:
             print(f"Error: Could not extract text from Gemini response for model {model_name}.")
-            # print(f"Full Response Object: {response}") # Be careful logging full response
             return None # Indicate failure
     except Exception as e:
         print(f"Error: An exception occurred during the Vertex AI API call for model {model_name}: {e}")
-        # import traceback
-        # print(traceback.format_exc())
         return None # Indicate failure
 
 def get_topic_from_gemini():
     """Asks Gemini to suggest a blog post topic."""
     print("Requesting blog topic suggestion from Gemini...")
-    # Keep the topic prompt simple and open-ended
     topic_prompt = """Suggest one interesting and specific blog post topic suitable for a general audience in the UK today.
     The topic should be engaging but not overly controversial. Output only the topic suggestion itself, without any extra text like 'Here is a topic:'."""
-
-    # Use simpler generation config for topic suggestion
     topic_generation_config = {
-        "temperature": 0.8, # Slightly higher temp for more variety
-        "max_output_tokens": 100, # Limit token usage for topic
+        "temperature": 0.8,
+        "max_output_tokens": 100,
         "top_p": 0.95,
         "top_k": 40,
     }
-
-    # Use the potentially faster/cheaper model for topic generation
     topic = call_gemini_api(GEMINI_TOPIC_MODEL_NAME, topic_prompt, topic_generation_config)
 
     if topic:
-        # Basic cleaning of the suggested topic
         topic = topic.strip().strip('"').strip("'").strip()
         print(f"Suggested topic received: '{topic}'")
         return topic
     else:
         print("Warning: Failed to get topic suggestion. Using a default topic.")
-        # Fallback topic if API call fails
-        return "The Benefits of Reading Books"
+        return "The Benefits of Reading Books" # Fallback
 
 def get_content_for_topic(topic: str):
     """Generates the main blog post content for the given topic."""
     print(f"Requesting blog post content for topic: '{topic}'...")
     today_str_display = datetime.date.today().strftime('%d %B %Y')
-
-    # Construct the main prompt using the dynamic topic
     content_prompt = f"""Please write a high-quality, engaging blog post suitable for a UK audience, approximately 800-1000 words long.
 
 The exact title must be: "{topic}"
@@ -135,26 +131,21 @@ The output format must be **HTML only**, ready to be embedded directly into the 
 
 Ensure the final output is well-formed, valid HTML fragment.
 """
-
-    # Use main generation config
     content_generation_config = {
         "temperature": 0.7,
         "max_output_tokens": 8192,
         "top_p": 0.95,
         "top_k": 40,
     }
-
-    # Use the main content generation model
     content_html = call_gemini_api(GEMINI_MODEL_NAME, content_prompt, content_generation_config)
 
     if content_html:
         return content_html
     else:
         print("Error: Failed to generate main blog content.")
-        sys.exit(1) # Exit if main content generation fails
+        sys.exit(1)
 
-
-# --- Helper Functions (Same as before) ---
+# --- Helper Functions (No changes needed) ---
 def extract_title(html_content, default_title):
     """Extracts the content of the first H1 tag from HTML using regex."""
     try:
@@ -181,24 +172,21 @@ def generate_slug(title):
         s = re.sub(r'[^\w\s-]', '', s)
         s = re.sub(r'[-\s]+', '-', s).strip('-')
         date_slug = datetime.date.today().strftime('%d%m%Y')
-        if not s: s = "post" # Generic fallback if title cleans to empty
+        if not s: s = "post"
         slug = f"{s}-{date_slug}"
-        # Ensure slug isn't excessively long (e.g., limit to 100 chars + date)
         max_len = 100
         if len(slug) > max_len + len(date_slug) + 1:
              s_truncated = s[:max_len]
-             # Avoid cutting mid-word if possible
              last_hyphen = s_truncated.rfind('-')
-             if last_hyphen > max_len / 2: # Heuristic: only cut at hyphen if it's far enough in
+             if last_hyphen > max_len / 2:
                  s_truncated = s_truncated[:last_hyphen]
              slug = f"{s_truncated}-{date_slug}"
-
         print(f"Generated slug: '{slug}'")
         return slug
     except Exception as e:
         print(f"Warning: An error occurred during slug generation: {e}")
         date_slug = datetime.date.today().strftime('%d%m%Y')
-        return f"post-{date_slug}" # Fallback slug
+        return f"post-{date_slug}"
 
 # --- Main Execution Logic ---
 def main():
@@ -213,7 +201,7 @@ def main():
         print(f"Error initializing Supabase client: {e}")
         sys.exit(1)
 
-    # Initialize Vertex AI (needed before calling API functions)
+    # 2. Initialize Vertex AI (important before calling API functions)
     try:
          aiplatform.init(project=GCP_PROJECT, location=GCP_LOCATION)
          print("Vertex AI initialized successfully.")
@@ -221,18 +209,21 @@ def main():
          print(f"Error initializing Vertex AI: {e}")
          sys.exit(1)
 
-    # 2. Get Topic Suggestion from AI
+    # 3. Get Topic Suggestion from AI
     suggested_topic = get_topic_from_gemini()
+    if not suggested_topic: # Exit if topic generation failed critically
+        print("Exiting due to failure in topic generation.")
+        sys.exit(1)
 
-    # 3. Generate Main Content based on the suggested topic
+    # 4. Generate Main Content based on the suggested topic
     generated_html_content = get_content_for_topic(suggested_topic)
+    # get_content_for_topic now exits on failure, so no need to check return here
 
-    # 4. Process the generated content (Extract actual title from H1)
-    #    Use the suggested topic as the default if H1 extraction fails
+    # 5. Process the generated content
     extracted_title = extract_title(generated_html_content, suggested_topic)
     post_slug = generate_slug(extracted_title)
 
-    # 5. Save the processed data to Supabase
+    # 6. Save the processed data to Supabase
     save_guide_to_supabase(supabase_client, extracted_title, post_slug, generated_html_content)
 
     print(f"--- Daily Blog Post Generation Finished Successfully: {datetime.datetime.now(datetime.timezone.utc)} UTC ---")
