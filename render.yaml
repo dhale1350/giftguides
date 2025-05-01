@@ -1,4 +1,4 @@
-# render.yaml - Defines the services for the Automated Gift Guide Blog on Render
+# render.yaml - Defines the services for the Automated Blog on Render
 # This version ONLY includes the static frontend site, assuming the backend
 # is handled by a separate service like Supabase.
 
@@ -6,7 +6,7 @@ services:
   # 1. Static Frontend Service
   #    Serves the static HTML, CSS, and JavaScript files for the blog interface.
   - type: web # Use 'web' for static sites in Blueprints
-    name: auto-gift-guides # Choose a unique name for the frontend service (e.g., yourname-gift-guides)
+    name: daily-reads # *** RENAMED service name ***
     runtime: static # Specify 'static' runtime for type: web
     # Removed 'plan: free' - Render should infer free static hosting from runtime: static
     rootDir: public # The directory in the repository containing the static files (index.html, etc.)
