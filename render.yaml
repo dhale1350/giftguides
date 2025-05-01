@@ -6,10 +6,12 @@ services:
   # 1. Static Frontend Service
   #    Serves the static HTML, CSS, and JavaScript files for the blog interface.
   - type: web # Use 'web' for static sites in Blueprints
-    name: daily-reads # *** RENAMED service name ***
+    name: daily-reads # Service name
     runtime: static # Specify 'static' runtime for type: web
     # Removed 'plan: free' - Render should infer free static hosting from runtime: static
-    rootDir: public # The directory in the repository containing the static files (index.html, etc.)
+    rootDir: public # The directory in the repository containing the source static files
+    staticPublishPath: public # *** ADDED: Explicitly specify the directory to publish ***
+    # buildCommand: # Optional: Add if you need a build step (e.g., npm run build)
     pullRequestPreviewsEnabled: true # Optional: Automatically builds and deploys previews for GitHub pull requests.
     buildFilter: # Optional: Controls when Render triggers a new build/deploy for this service.
       paths:
