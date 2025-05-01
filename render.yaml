@@ -1,47 +1,22 @@
 # render.yaml - Defines the services for the Automated Gift Guide Blog on Render
+# This version ONLY includes the static frontend site, assuming the backend
+# is handled by a separate service like Supabase.
 
 services:
-  # 1. PocketBase Backend Service
-  #    Runs the PocketBase application using the Dockerfile.
-  - type: web # 'web' type indicates a service accessible via HTTP/S
-    name: giftguides-pb # Choose a unique name for the service (e.g., yourname-giftguides-pb)
-                       # This forms part of the default URL: name.onrender.com
-    env: docker # Specifies that this service is built from a Dockerfile
-    dockerfilePath: ./Dockerfile # Path to the Dockerfile in the repository root
-    plan: free # Specifies the instance type. 'free' tier has limitations:
-               # - Shared CPU, limited RAM (e.g., 512MB)
-               # - Spins down after a period of inactivity (causes delay on first request after idle)
-               # - Limited background worker/cron job capabilities (we use GitHub Actions instead)
-    disk:
-      name: pb-data # A name for the persistent disk volume
-      mountPath: /pb/pb_data # The path *inside the container* where the disk should be mounted.
-                             # This MUST match where PocketBase stores its data.
-      sizeGB: 1 # The size of the persistent disk in GB. 1GB is the smallest available size.
-                # PocketBase with SQLite uses minimal disk space initially.
-    envVars:
-      - key: PORT # Render injects this environment variable with the port the service should listen on.
-        value: 8080 # Set the value Render expects. Must match EXPOSE/CMD in Dockerfile.
-    # Optional Health Check (Recommended for web services)
-    healthCheckPath: /api/health # PocketBase provides a health check endpoint
-
-  # 2. Static Frontend Service
+  # 1. Static Frontend Service
   #    Serves the static HTML, CSS, and JavaScript files for the blog interface.
-  - type: static # 'static' type is specifically for serving static assets.
+  - type: web # Use 'web' for static sites in Blueprints
     name: auto-gift-guides # Choose a unique name for the frontend service (e.g., yourname-gift-guides)
-                           # This forms part of the default URL: name.onrender.com
-    plan: free # Use Render's free static site hosting tier.
-               # - Includes global CDN
-               # - Generous bandwidth limits
-               # - Does NOT spin down like free web services
+    runtime: static # Specify 'static' runtime for type: web
+    # Plan remains 'free' for the static site
+    plan: free # Use Render's free static site hosting tier (via runtime: static)
     rootDir: public # The directory in the repository containing the static files (index.html, etc.)
+    # Static sites with runtime: static don't need a build command unless processing assets
+    # buildCommand: # Optional: Add if you need a build step (e.g., npm run build)
+    # staticPublishPath: ./public # Optional: Specify if build output is different from rootDir
     pullRequestPreviewsEnabled: true # Optional: Automatically builds and deploys previews for GitHub pull requests.
     buildFilter: # Optional: Controls when Render triggers a new build/deploy for this service.
       paths:
       - public/** # Only trigger a deploy if files within the 'public' directory change.
-                  # Prevents unnecessary deploys when only backend/script code changes.
-    # Routes (Optional): Can be used for redirects or rewrites if needed later.
-    # Example: Redirect all paths to index.html for Single Page Apps (not needed here)
-    # routes:
-    #   - type: rewrite
-    #     source: /*
-    #     destination: /index.html
+
+# Note: The PocketBase web service definition has been removed.
