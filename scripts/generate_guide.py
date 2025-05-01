@@ -2,7 +2,7 @@
 # Python script to generate daily blog content using Vertex AI Gemini,
 # automatically fetch relevant images from Pixabay,
 # and save the final HTML to a Supabase database table.
-# Version 11: Using re.finditer for robust placeholder replacement.
+# Version 12: Print HTML before replacement for debugging IndexError.
 
 # --- START DEBUGGING ---
 import os
@@ -278,7 +278,19 @@ def find_and_replace_pixabay_placeholders(html_content: str, pixabay_key: str) -
     # Iterate through all non-overlapping matches found in the HTML
     for match in re.finditer(placeholder_pattern, html_content):
         start, end = match.span() # Get start and end position of the match
-        keywords = match.group(1).strip() # Extract keywords from group 1
+        
+        try:
+            keywords = match.group(1).strip() # Extract keywords from group 1
+        except IndexError:
+            # This should ideally not happen with finditer if the pattern is correct,
+            # but handle defensively.
+            print(f"Error: Could not extract keywords from match: {match.group(0)}. Skipping.")
+            # Append the text before this malformed match
+            processed_parts.append(html_content[last_end:start])
+            # Append the malformed comment itself so it's not silently deleted
+            processed_parts.append(match.group(0)) 
+            last_end = end
+            continue # Skip to the next match
 
         # Append the text *before* the current match
         processed_parts.append(html_content[last_end:start])
@@ -427,16 +439,16 @@ def main():
 
     # Step 3: Clean potential markdown fences
     cleaned_html_with_placeholders = clean_html_output(html_with_placeholders)
-
-    # --- DEBUG: Print HTML before replacement ---
-    # print("\n--- HTML before image replacement ---")
-    # print(cleaned_html_with_placeholders)
-    # print("--- End HTML before image replacement ---\n")
-    # --- End DEBUG ---
+    
+    # --- ADDED DEBUGGING STEP ---
+    print("\n--- HTML before image replacement ---")
+    print(cleaned_html_with_placeholders)
+    print("--- End HTML before image replacement ---\n")
+    # --- END DEBUGGING STEP ---
 
     # Step 4: Find image placeholders and replace them with Pixabay images
     final_html_content = find_and_replace_pixabay_placeholders(cleaned_html_with_placeholders, PIXABAY_API_KEY)
-
+    
     # --- DEBUG: Print HTML after replacement ---
     # print("\n--- HTML after image replacement ---")
     # print(final_html_content)
