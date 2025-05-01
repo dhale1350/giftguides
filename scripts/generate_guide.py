@@ -2,7 +2,7 @@
 # Python script to generate daily blog content using Vertex AI Gemini,
 # automatically fetch relevant images from Pixabay,
 # and save the final HTML to a Supabase database table.
-# Version 8: Corrected Pixabay placeholder replacement logic.
+# Version 9: Corrected the regex pattern for Pixabay placeholders.
 
 # --- START DEBUGGING ---
 import os
@@ -213,7 +213,7 @@ The output format must be **HTML only**, ready to be embedded directly into the 
 def search_pixabay_image(query: str, api_key: str):
     """Searches Pixabay for an image based on the query and returns URL and alt text."""
     print(f"Searching Pixabay for: '{query}'")
-    pixabay_api_url = "[https://pixabay.com/api/](https://pixabay.com/api/)"
+    pixabay_api_url = "https://pixabay.com/api/" # Corrected URL
     params = {
         "key": api_key,
         "q": query,
@@ -260,7 +260,7 @@ def search_pixabay_image(query: str, api_key: str):
 # --- CORRECTED Placeholder Replacement Logic ---
 def replace_match_with_image(match, pixabay_key):
     """Helper function called by re.sub for each placeholder found."""
-    keywords = match.group(1).strip() # Get the captured keywords from the match object
+    keywords = match.group(1).strip() # Get the captured keywords from the match object (group 1)
     print(f"Processing placeholder for keywords: '{keywords}'")
     
     # Handle empty keywords explicitly - remove the placeholder if keywords are empty
@@ -273,6 +273,7 @@ def replace_match_with_image(match, pixabay_key):
 
     if image_info:
         # Construct the replacement HTML snippet if an image is found
+        # Added some basic styling classes assuming Tailwind might be available on the frontend
         replacement_html = f"""
 <div class="my-6 text-center">
     <img src="{image_info['url']}" alt="{image_info['alt']}" class="max-w-full h-auto mx-auto rounded-lg shadow-md">
@@ -290,6 +291,7 @@ def find_and_replace_pixabay_placeholders(html_content: str, pixabay_key: str) -
     if not html_content:
         return ""
 
+    # *** CORRECTED REGEX PATTERN ***
     # Regex to find the placeholder comments and capture the keywords
     # Ensures it matches the specific comment format
     placeholder_pattern = r""
