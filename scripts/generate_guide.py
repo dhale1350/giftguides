@@ -2,7 +2,7 @@
 # Python script to generate daily blog content using Vertex AI Gemini,
 # automatically fetch relevant images from Pixabay,
 # and save the final HTML to a Supabase database table.
-# Version 7: Pixabay API integration.
+# Version 8: Corrected Pixabay placeholder replacement logic.
 
 # --- START DEBUGGING ---
 import os
@@ -213,7 +213,7 @@ The output format must be **HTML only**, ready to be embedded directly into the 
 def search_pixabay_image(query: str, api_key: str):
     """Searches Pixabay for an image based on the query and returns URL and alt text."""
     print(f"Searching Pixabay for: '{query}'")
-    pixabay_api_url = "https://pixabay.com/api/"
+    pixabay_api_url = "[https://pixabay.com/api/](https://pixabay.com/api/)"
     params = {
         "key": api_key,
         "q": query,
@@ -246,6 +246,7 @@ def search_pixabay_image(query: str, api_key: str):
                  print("Warning: Found Pixabay hit but missing image URL.")
                  return None
         else:
+            # Log the actual response if no hits are found for debugging
             print(f"Warning: No image results found on Pixabay for '{query}'. Response: {data}")
             return None
 
@@ -256,48 +257,60 @@ def search_pixabay_image(query: str, api_key: str):
         print(f"Error processing Pixabay response: {e}")
         return None
 
-def find_and_replace_pixabay_placeholders(html_content: str, pixabay_key: str) -> str:
-    """Finds placeholders and replaces them with actual images."""
-    if not html_content:
-        return ""
+# --- CORRECTED Placeholder Replacement Logic ---
+def replace_match_with_image(match, pixabay_key):
+    """Helper function called by re.sub for each placeholder found."""
+    keywords = match.group(1).strip() # Get the captured keywords from the match object
+    print(f"Processing placeholder for keywords: '{keywords}'")
+    
+    # Handle empty keywords explicitly - remove the placeholder if keywords are empty
+    if not keywords:
+        print("Skipping placeholder with empty keywords.")
+        return "" # Return empty string to remove the matched placeholder comment
 
-    # Regex to find the placeholder comments and capture the keywords
-    placeholder_pattern = r""
+    # Search for an image using the extracted keywords
+    image_info = search_pixabay_image(keywords, pixabay_key)
 
-    processed_html = html_content
-
-    # Find all occurrences of the placeholder
-    matches = re.findall(placeholder_pattern, html_content)
-
-    if not matches:
-        print("No image placeholders found in the generated HTML.")
-        return html_content # Return original content if no placeholders
-
-    print(f"Found {len(matches)} image placeholders to process.")
-
-    for keywords in matches:
-        print(f"Processing placeholder for keywords: '{keywords}'")
-        image_info = search_pixabay_image(keywords, pixabay_key)
-
-        if image_info:
-            # Construct the replacement HTML snippet (simpler than Unsplash, no figcaption needed by default)
-            # Added some basic styling classes assuming Tailwind might be available on the frontend
-            replacement_html = f"""
+    if image_info:
+        # Construct the replacement HTML snippet if an image is found
+        replacement_html = f"""
 <div class="my-6 text-center">
     <img src="{image_info['url']}" alt="{image_info['alt']}" class="max-w-full h-auto mx-auto rounded-lg shadow-md">
 </div>
 """
-            # Replace the *first* occurrence of the placeholder for these keywords
-            placeholder_to_replace = f""
-            processed_html = processed_html.replace(placeholder_to_replace, replacement_html, 1)
-            print(f"Replaced placeholder for '{keywords}' with Pixabay image.")
-        else:
-            # If no image found, just remove the placeholder comment
-            print(f"Removing placeholder for '{keywords}' as no image was found.")
-            placeholder_to_replace = f""
-            processed_html = processed_html.replace(placeholder_to_replace, "", 1) # Remove the comment
+        print(f"Replacing placeholder for '{keywords}' with Pixabay image.")
+        return replacement_html # Return the HTML for the image
+    else:
+        # If no image found for the keywords, just remove the placeholder comment
+        print(f"Removing placeholder for '{keywords}' as no image was found.")
+        return "" # Return empty string to remove the matched placeholder comment
+
+def find_and_replace_pixabay_placeholders(html_content: str, pixabay_key: str) -> str:
+    """Finds placeholders and replaces them using re.sub."""
+    if not html_content:
+        return ""
+
+    # Regex to find the placeholder comments and capture the keywords
+    # Ensures it matches the specific comment format
+    placeholder_pattern = r""
+
+    # Use a lambda function to pass the pixabay_key to the replacer function
+    # This replacer function will be called for each match found by re.sub
+    replacer = lambda match: replace_match_with_image(match, pixabay_key)
+
+    # Use re.subn to find all non-overlapping matches and replace them using the replacer function
+    # re.subn also returns the number of substitutions made
+    processed_html, num_replacements = re.subn(placeholder_pattern, replacer, html_content)
+
+    if num_replacements == 0:
+        print("No valid image placeholders found or replaced in the generated HTML.")
+    else:
+        # Report the actual number of replacements made
+        print(f"Processed {num_replacements} image placeholders.")
 
     return processed_html
+# --- End CORRECTED Placeholder Replacement Logic ---
+
 
 # --- Helper Functions ---
 # (extract_title and generate_slug remain the same)
@@ -405,9 +418,22 @@ def main():
 
     # Step 3: Clean potential markdown fences
     cleaned_html_with_placeholders = clean_html_output(html_with_placeholders)
+    
+    # --- DEBUG: Print HTML before replacement ---
+    # print("\n--- HTML before image replacement ---")
+    # print(cleaned_html_with_placeholders)
+    # print("--- End HTML before image replacement ---\n")
+    # --- End DEBUG ---
 
     # Step 4: Find image placeholders and replace them with Pixabay images
     final_html_content = find_and_replace_pixabay_placeholders(cleaned_html_with_placeholders, PIXABAY_API_KEY)
+    
+    # --- DEBUG: Print HTML after replacement ---
+    # print("\n--- HTML after image replacement ---")
+    # print(final_html_content)
+    # print("--- End HTML after image replacement ---\n")
+    # --- End DEBUG ---
+
 
     # Step 5: Process the final content for title and slug
     extracted_title = extract_title(final_html_content, suggested_topic)
