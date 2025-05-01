@@ -1,7 +1,7 @@
 # scripts/generate_guide.py
 # Python script to generate daily blog text content using Vertex AI Gemini
 # and save it to a Supabase database table.
-# Version 13: Removed all image generation/placeholder logic.
+# Version 14: More robust HTML cleanup.
 
 # --- START DEBUGGING ---
 import os
@@ -66,8 +66,6 @@ try:
     GCP_PROJECT = os.environ['GCP_PROJECT']
     GCP_LOCATION = os.environ['GCP_LOCATION'] # e.g., us-central1
 
-    # Pixabay key removed
-
     # Using gemini-2.0-flash-001 as it was confirmed working
     GEMINI_MODEL_NAME = "gemini-2.0-flash-001"
     GEMINI_TOPIC_MODEL_NAME = os.getenv('GEMINI_TOPIC_MODEL_NAME', "gemini-2.0-flash-001")
@@ -79,14 +77,14 @@ except KeyError as e:
 
 # --- Supabase Interaction Function ---
 def save_guide_to_supabase(supabase: Client, title: str, slug: str, content_html: str):
-    """Saves the generated guide data to Supabase."""
+    """Saves the generated guide data (with placeholders) to Supabase."""
     print(f"Attempting to save guide '{title}' to Supabase table 'guides'...")
     try:
         # Prepare the data payload for insertion
         data_to_insert = {
             "title": title,
             "slug": slug,
-            "contentHTML": content_html, # Save the generated HTML
+            "contentHTML": content_html, # Save the cleaned HTML
             # Record the publication time in UTC ISO format
             "publishedAt": datetime.datetime.now(datetime.timezone.utc).isoformat()
         }
@@ -154,22 +152,58 @@ def get_topic_from_gemini():
         print("Warning: Failed to get topic suggestion from Gemini. Using a default topic.")
         return "The Benefits of Reading Books" # Provide a fallback topic
 
+# --- MORE ROBUST HTML CLEANUP ---
 def clean_html_output(html_content):
-    """Removes potential markdown code fences (```html ... ```) from the start/end."""
+    """
+    Cleans the raw HTML output from Gemini.
+    - Removes leading/trailing markdown code fences (```html ... ``` or ``` ... ```).
+    - Removes common leading text like "Here's the HTML:".
+    - Attempts to ensure the content starts with an <h1> tag.
+    """
     if html_content is None:
         return None
-    
+
     cleaned_content = html_content.strip()
-    # Remove starting ```html (and variations) and ending ```
-    if cleaned_content.startswith('```html') and cleaned_content.endswith('```'):
-        cleaned_content = cleaned_content[len('```html'):-len('```')].strip()
-        print("Cleaned ```html fences from content.")
-    elif cleaned_content.startswith('```') and cleaned_content.endswith('```'):
-         # Handle case where language wasn't specified in the fence
-         cleaned_content = cleaned_content[len('```'):-len('```')].strip()
-         print("Cleaned ``` fences from content.")
-         
+
+    # 1. Remove common leading/trailing text patterns using regex (case-insensitive)
+    patterns_to_remove = [
+        r"^\s*```html\s*",      # Starting ```html
+        r"\s*```\s*$",          # Ending ```
+        r"^\s*```\s*",          # Starting ```
+        r"^\s*here's the html:?\s*", # Common leading text
+        r"^\s*html:\s*",            # Common leading text
+    ]
+    for pattern in patterns_to_remove:
+        # Use re.IGNORECASE for case-insensitivity
+        cleaned_content = re.sub(pattern, "", cleaned_content, flags=re.IGNORECASE | re.MULTILINE).strip()
+        
+    # 2. Attempt to find the first <h1> tag
+    h1_match = re.search(r"<h1.*?>", cleaned_content, re.IGNORECASE)
+    
+    if h1_match:
+        # If an <h1> tag is found, check if it's at the beginning
+        if h1_match.start() > 0:
+            # If there's text before the first <h1>, discard it
+            print(f"Warning: Found text before the first <h1> tag. Discarding preamble.")
+            cleaned_content = cleaned_content[h1_match.start():]
+    else:
+        # If no <h1> tag is found at all, this is unexpected based on the prompt.
+        # Log a warning, but return the content as is for now.
+        print("Warning: No <h1> tag found in the cleaned HTML content. Prompt instructions might not have been followed.")
+
+    # Final strip just in case
+    cleaned_content = cleaned_content.strip()
+
+    # Optional: Add more specific cleanup rules here if needed (e.g., removing specific unwanted tags)
+
+    # Print comparison if changes were made
+    if cleaned_content != html_content.strip():
+        print("Cleaned HTML content.")
+    else:
+        print("HTML content required no cleaning.")
+
     return cleaned_content
+# --- END ROBUST HTML CLEANUP ---
 
 def get_content_for_topic(topic: str):
     """Generates the main blog post HTML content (text only) for the given topic using Gemini."""
@@ -198,15 +232,9 @@ The output format must be **HTML only**, ready to be embedded directly into the 
     raw_html_content = call_gemini_api(GEMINI_MODEL_NAME, content_prompt, content_generation_config)
 
     if raw_html_content:
-        # Clean potential markdown fences
-        cleaned_html_content = clean_html_output(raw_html_content)
-
-        # Basic validation on the *cleaned* content
-        if not cleaned_html_content or not cleaned_html_content.strip().lower().startswith('<h1>'):
-             print("Warning: Cleaned HTML content is empty or does not start with <h1> as expected.")
-             # Fallback or exit if cleaning resulted in bad content
-
-        return cleaned_html_content # Return the cleaned HTML
+        # The clean_html_output function will handle fences and ensure it starts with <h1>
+        # No need for the extra check here anymore
+        return raw_html_content # Return the raw content to be cleaned later
     else:
         # Handle failure to generate content
         print("Error: Failed to generate main blog content from Gemini.")
@@ -319,10 +347,13 @@ def main():
     # Step 2: Generate Main Content (Text Only)
     generated_html_content_raw = get_content_for_topic(suggested_topic)
 
-    # Step 3: Clean potential markdown fences
+    # Step 3: Clean potential markdown fences and ensure starts with H1
     final_html_content = clean_html_output(generated_html_content_raw)
     
-    # Image replacement step removed
+    # Ensure content is not None after cleaning before proceeding
+    if final_html_content is None:
+        print("Error: HTML content is None after cleaning. Exiting.")
+        sys.exit(1)
 
     # Step 4: Process the final content for title and slug
     extracted_title = extract_title(final_html_content, suggested_topic)
