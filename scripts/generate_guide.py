@@ -58,10 +58,10 @@ try:
     SUPABASE_SERVICE_KEY = os.environ['SUPABASE_SERVICE_KEY']
     GCP_PROJECT = os.environ['GCP_PROJECT']
     GCP_LOCATION = os.environ['GCP_LOCATION']
-    # *** UPDATED MODEL NAME to stable version ***
-    GEMINI_MODEL_NAME = "gemini-1.5-flash-001"
+    # *** UPDATED MODEL NAME to use 'latest' tag ***
+    GEMINI_MODEL_NAME = "gemini-1.5-flash-latest"
     # *** UPDATED TOPIC MODEL NAME for consistency ***
-    GEMINI_TOPIC_MODEL_NAME = os.getenv('GEMINI_TOPIC_MODEL_NAME', "gemini-1.5-flash-001")
+    GEMINI_TOPIC_MODEL_NAME = os.getenv('GEMINI_TOPIC_MODEL_NAME', "gemini-1.5-flash-latest")
 except KeyError as e:
     print(f"Error: Environment variable {e} not set after debug checks. Check GitHub Secrets/local setup.")
     sys.exit(1)
