@@ -1,8 +1,7 @@
 # scripts/generate_guide.py
-# Python script to generate daily blog content using Vertex AI Gemini,
-# automatically fetch relevant images from Pixabay,
-# and save the final HTML to a Supabase database table.
-# Version 12: Print HTML before replacement for debugging IndexError.
+# Python script to generate daily blog text content using Vertex AI Gemini
+# and save it to a Supabase database table.
+# Version 13: Removed all image generation/placeholder logic.
 
 # --- START DEBUGGING ---
 import os
@@ -42,7 +41,7 @@ print("--- DEBUGGING END ---")
 import datetime
 import re
 import random
-import requests # Added for making API calls to Pixabay
+# Removed 'requests' import
 try:
     # Import the necessary Google Cloud libraries for Vertex AI
     from google.cloud import aiplatform
@@ -67,27 +66,27 @@ try:
     GCP_PROJECT = os.environ['GCP_PROJECT']
     GCP_LOCATION = os.environ['GCP_LOCATION'] # e.g., us-central1
 
-    # *** IMPORTANT: Add your Pixabay API Key as a GitHub Secret ***
-    PIXABAY_API_KEY = os.environ['PIXABAY_API_KEY']
+    # Pixabay key removed
 
     # Using gemini-2.0-flash-001 as it was confirmed working
     GEMINI_MODEL_NAME = "gemini-2.0-flash-001"
     GEMINI_TOPIC_MODEL_NAME = os.getenv('GEMINI_TOPIC_MODEL_NAME', "gemini-2.0-flash-001")
 
 except KeyError as e:
-    print(f"Error: Environment variable {e} not set. Check GitHub Secrets (including PIXABAY_API_KEY) or local environment setup.")
+    # Updated error message to reflect removed API key requirement
+    print(f"Error: Environment variable {e} not set. Check GitHub Secrets or local environment setup.")
     sys.exit(1)
 
 # --- Supabase Interaction Function ---
 def save_guide_to_supabase(supabase: Client, title: str, slug: str, content_html: str):
-    """Saves the generated and image-processed guide data to Supabase."""
+    """Saves the generated guide data to Supabase."""
     print(f"Attempting to save guide '{title}' to Supabase table 'guides'...")
     try:
         # Prepare the data payload for insertion
         data_to_insert = {
             "title": title,
             "slug": slug,
-            "contentHTML": content_html, # Save the HTML with real images
+            "contentHTML": content_html, # Save the generated HTML
             # Record the publication time in UTC ISO format
             "publishedAt": datetime.datetime.now(datetime.timezone.utc).isoformat()
         }
@@ -173,11 +172,10 @@ def clean_html_output(html_content):
     return cleaned_content
 
 def get_content_for_topic(topic: str):
-    """Generates the main blog post HTML content (with Pixabay image placeholders) for the given topic using Gemini."""
+    """Generates the main blog post HTML content (text only) for the given topic using Gemini."""
     print(f"Requesting blog post content for topic: '{topic}'...")
 
-    # --- MODIFIED PROMPT for Pixabay ---
-    # Asking Gemini to insert placeholder comments instead of <img> tags.
+    # --- SIMPLIFIED PROMPT (No Images) ---
     content_prompt = f"""Please write a high-quality, engaging blog post suitable for a UK audience, approximately 800-1000 words long.
 The exact title must be: "{topic}"
 
@@ -186,7 +184,7 @@ The output format must be **HTML only**, ready to be embedded directly into the 
 **HTML Requirements:**
 * Start directly with a single `<h1>` tag containing the exact title: "{topic}". Do not add any text before this tag.
 * Structure the content logically using `<h2>` tags for main sections and `<p>` tags for paragraphs. Use standard semantic HTML (`<strong>`, `<em>`, `<ul>`, `<ol>`, `<li>`).
-* **IMPORTANT IMAGE INSTRUCTION:** Where a relevant image would enhance the content (e.g., after an introductory section or illustrating a key point), insert an HTML comment placeholder in the format: ``. For example: ``. Use 1-3 such placeholders where appropriate. Do NOT include any `<img>` tags yourself.
+* **IMPORTANT: Do NOT include any `<img>` tags or image placeholders.** Generate text-only content.
 * Do NOT include `<head>`, `<body>`, `<html>`, `<!DOCTYPE>`, or `<style>` tags.
 * Do NOT include pricing, purchasing links, affiliate links, 'buy now' buttons, discount codes, or specific retailer mentions.
 * Do not include author bylines, publication dates, or comment sections within the generated HTML content itself.
@@ -197,141 +195,25 @@ The output format must be **HTML only**, ready to be embedded directly into the 
         "temperature": 0.7, "max_output_tokens": 8192, "top_p": 0.95, "top_k": 40
     }
     # Call the Gemini API
-    html_with_placeholders = call_gemini_api(GEMINI_MODEL_NAME, content_prompt, content_generation_config)
+    raw_html_content = call_gemini_api(GEMINI_MODEL_NAME, content_prompt, content_generation_config)
 
-    if html_with_placeholders:
-        # Basic validation
-        if not html_with_placeholders.strip().lower().startswith('<h1>'):
-             print("Warning: Generated HTML content does not start with <h1> as expected.")
-        return html_with_placeholders
+    if raw_html_content:
+        # Clean potential markdown fences
+        cleaned_html_content = clean_html_output(raw_html_content)
+
+        # Basic validation on the *cleaned* content
+        if not cleaned_html_content or not cleaned_html_content.strip().lower().startswith('<h1>'):
+             print("Warning: Cleaned HTML content is empty or does not start with <h1> as expected.")
+             # Fallback or exit if cleaning resulted in bad content
+
+        return cleaned_html_content # Return the cleaned HTML
     else:
         # Handle failure to generate content
         print("Error: Failed to generate main blog content from Gemini.")
+        # Exit the script if content generation fails
         sys.exit(1)
 
-# --- Pixabay Image Integration ---
-def search_pixabay_image(query: str, api_key: str):
-    """Searches Pixabay for an image based on the query and returns URL and alt text."""
-    # Avoid searching if the query is empty or too short
-    if not query or len(query.strip()) < 3:
-        print(f"Skipping Pixabay search for empty or too short query: '{query}'")
-        return None
-        
-    print(f"Searching Pixabay for: '{query}'")
-    pixabay_api_url = "https://pixabay.com/api/"
-    params = {
-        "key": api_key,
-        "q": query,
-        "image_type": "photo", # Focus on photos
-        "orientation": "horizontal", # Prefer landscape
-        "safesearch": "true", # Enable safe search
-        "per_page": 3 # Get a few options just in case the first isn't ideal
-    }
-
-    try:
-        response = requests.get(pixabay_api_url, params=params, timeout=10) # Added timeout
-        response.raise_for_status() # Raise an exception for bad status codes (4xx or 5xx)
-
-        data = response.json()
-
-        if data and data.get("hits"):
-            # Simple approach: Take the first hit
-            image_data = data["hits"][0]
-            image_url = image_data.get("webformatURL") # Or "largeImageURL" for higher res
-            # Use Pixabay tags or the original query as alt text basis
-            alt_text = image_data.get("tags", query) 
-
-            if image_url:
-                print(f"Found Pixabay image: {image_url}")
-                return {
-                    "url": image_url,
-                    "alt": alt_text.replace('"', '&quot;') # Basic sanitization for alt attribute
-                }
-            else:
-                 print("Warning: Found Pixabay hit but missing image URL.")
-                 return None
-        else:
-            # Log the actual response if no hits are found for debugging
-            print(f"Warning: No image results found on Pixabay for '{query}'. Response: {data}")
-            return None
-
-    except requests.exceptions.RequestException as e:
-        print(f"Error calling Pixabay API: {e}")
-        return None
-    except Exception as e:
-        print(f"Error processing Pixabay response: {e}")
-        return None
-
-# --- REVISED Placeholder Replacement Logic using finditer ---
-def find_and_replace_pixabay_placeholders(html_content: str, pixabay_key: str) -> str:
-    """Finds placeholders and replaces them using re.finditer."""
-    if not html_content:
-        return ""
-
-    # Regex to find the placeholder comments and capture the keywords
-    placeholder_pattern = r""
-    
-    processed_parts = [] # List to store parts of the final HTML
-    last_end = 0 # Keep track of the end position of the last match
-    replacements_made = 0 # Count successful replacements
-
-    # Iterate through all non-overlapping matches found in the HTML
-    for match in re.finditer(placeholder_pattern, html_content):
-        start, end = match.span() # Get start and end position of the match
-        
-        try:
-            keywords = match.group(1).strip() # Extract keywords from group 1
-        except IndexError:
-            # This should ideally not happen with finditer if the pattern is correct,
-            # but handle defensively.
-            print(f"Error: Could not extract keywords from match: {match.group(0)}. Skipping.")
-            # Append the text before this malformed match
-            processed_parts.append(html_content[last_end:start])
-            # Append the malformed comment itself so it's not silently deleted
-            processed_parts.append(match.group(0)) 
-            last_end = end
-            continue # Skip to the next match
-
-        # Append the text *before* the current match
-        processed_parts.append(html_content[last_end:start])
-
-        print(f"\nProcessing placeholder found: {match.group(0)}")
-        print(f"Extracted keywords: '{keywords}'")
-
-        # Search for image only if keywords are not empty
-        if keywords:
-            image_info = search_pixabay_image(keywords, pixabay_key)
-            if image_info:
-                # Construct the replacement HTML snippet
-                replacement_html = f"""
-<div class="my-6 text-center">
-    <img src="{image_info['url']}" alt="{image_info['alt']}" class="max-w-full h-auto mx-auto rounded-lg shadow-md">
-</div>
-"""
-                processed_parts.append(replacement_html) # Add the image HTML
-                print(f"Replaced placeholder for '{keywords}' with Pixabay image.")
-                replacements_made += 1
-            else:
-                # If no image found, append nothing (effectively removing the comment)
-                print(f"Removing placeholder for '{keywords}' as no image was found.")
-        else:
-            # If keywords were empty, append nothing (remove the comment)
-            print("Skipping placeholder with empty keywords.")
-            
-        last_end = end # Update the end position for the next iteration
-
-    # Append any remaining text after the last match
-    processed_parts.append(html_content[last_end:])
-
-    if replacements_made == 0:
-         print("No valid image placeholders found or replaced in the generated HTML.")
-    else:
-         print(f"Processed {replacements_made} image placeholders.")
-
-    # Join all parts together to form the final HTML
-    return "".join(processed_parts)
-# --- End REVISED Placeholder Replacement Logic ---
-
+# --- Image placeholder functions removed ---
 
 # --- Helper Functions ---
 # (extract_title and generate_slug remain the same)
@@ -410,7 +292,7 @@ def generate_slug(title):
 
 # --- Main Execution Logic ---
 def main():
-    """Main function to orchestrate the blog post generation and Pixabay image processing."""
+    """Main function to orchestrate the blog post generation process (text only)."""
     print(f"--- Starting Daily Blog Post Generation: {datetime.datetime.now(datetime.timezone.utc)} UTC ---")
 
     # Initialize Supabase Client
@@ -419,7 +301,7 @@ def main():
         print("Supabase client initialized successfully.")
     except Exception as e:
         print(f"Error initializing Supabase client: {e}")
-        sys.exit(1)
+        sys.exit(1) # Exit if Supabase connection fails
 
     # Initialize Vertex AI Client
     try:
@@ -429,38 +311,24 @@ def main():
     except Exception as e:
          # Catch errors during Vertex AI initialization
          print(f"Error initializing Vertex AI: {e}")
-         sys.exit(1)
+         sys.exit(1) # Exit if Vertex AI connection fails
 
     # Step 1: Get Topic Suggestion from AI
     suggested_topic = get_topic_from_gemini()
 
-    # Step 2: Generate Main Content (with image placeholders)
-    html_with_placeholders = get_content_for_topic(suggested_topic)
+    # Step 2: Generate Main Content (Text Only)
+    generated_html_content_raw = get_content_for_topic(suggested_topic)
 
     # Step 3: Clean potential markdown fences
-    cleaned_html_with_placeholders = clean_html_output(html_with_placeholders)
+    final_html_content = clean_html_output(generated_html_content_raw)
     
-    # --- ADDED DEBUGGING STEP ---
-    print("\n--- HTML before image replacement ---")
-    print(cleaned_html_with_placeholders)
-    print("--- End HTML before image replacement ---\n")
-    # --- END DEBUGGING STEP ---
+    # Image replacement step removed
 
-    # Step 4: Find image placeholders and replace them with Pixabay images
-    final_html_content = find_and_replace_pixabay_placeholders(cleaned_html_with_placeholders, PIXABAY_API_KEY)
-    
-    # --- DEBUG: Print HTML after replacement ---
-    # print("\n--- HTML after image replacement ---")
-    # print(final_html_content)
-    # print("--- End HTML after image replacement ---\n")
-    # --- End DEBUG ---
-
-
-    # Step 5: Process the final content for title and slug
+    # Step 4: Process the final content for title and slug
     extracted_title = extract_title(final_html_content, suggested_topic)
     post_slug = generate_slug(extracted_title)
 
-    # Step 6: Save the final data (with real images) to Supabase
+    # Step 5: Save the final data to Supabase
     save_guide_to_supabase(supabase_client, extracted_title, post_slug, final_html_content)
 
     print(f"--- Daily Blog Post Generation Finished Successfully: {datetime.datetime.now(datetime.timezone.utc)} UTC ---")

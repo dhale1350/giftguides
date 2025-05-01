@@ -1,8 +1,5 @@
 # requirements.txt - Python dependencies for the Gemini content generator script
 
-# For making HTTP requests (needed for Pixabay API)
-requests>=2.28.0
-
 # Google Cloud client libraries
 # For interacting with Vertex AI (Gemini)
 google-cloud-aiplatform>=1.38.1
@@ -14,3 +11,4 @@ supabase>=2.0.0 # Check for the latest version
 
 # Optional: Add other libraries if needed
 # beautifulsoup4>=4.11.0
+# requests library removed as external image APIs are not used
