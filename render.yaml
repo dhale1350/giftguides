@@ -26,7 +26,7 @@ services:
 
   # 2. Static Frontend Service
   #    Serves the static HTML, CSS, and JavaScript files for the blog interface.
-  - type: static # 'static' type is specifically for serving static assets.
+  - type: static_site # *** CORRECTED TYPE: Use 'static_site' for static hosting ***
     name: auto-gift-guides # Choose a unique name for the frontend service (e.g., yourname-gift-guides)
                            # This forms part of the default URL: name.onrender.com
     plan: free # Use Render's free static site hosting tier.
