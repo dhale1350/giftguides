@@ -8,8 +8,7 @@ services:
   - type: web # Use 'web' for static sites in Blueprints
     name: auto-gift-guides # Choose a unique name for the frontend service (e.g., yourname-gift-guides)
     runtime: static # Specify 'static' runtime for type: web
-    # Plan remains 'free' for the static site
-    plan: free # Use Render's free static site hosting tier (via runtime: static)
+    # Removed 'plan: free' - Render should infer free static hosting from runtime: static
     rootDir: public # The directory in the repository containing the static files (index.html, etc.)
     pullRequestPreviewsEnabled: true # Optional: Automatically builds and deploys previews for GitHub pull requests.
     buildFilter: # Optional: Controls when Render triggers a new build/deploy for this service.
