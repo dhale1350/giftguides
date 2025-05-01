@@ -642,25 +642,3 @@
     </script>
 </body>
 </html>
-```
-
-**Summary & Next Steps:**
-
-1.  **Update Files:** Replace the content of your local `scripts/generate_guide.py` and `public/index.html` with the code provided in the documents above (`generate_guide_py_v17`, `index_html_v7`).
-2.  **Commit and Push:** Commit both changed files to your GitHub repository.
-    ```bash
-    git add scripts/generate_guide.py public/index.html
-    git commit -m "feat: Add RSS feed, pagination, single post view, related posts"
-    git push
-    ```
-3.  **Check Render Deployment:** Wait for the new deployment of the frontend (`index.html`) to go live on Render.
-4.  **Verify Website:**
-    * Visit your site (`https://daily-reads-2nng.onrender.com/`) and hard refresh (`Ctrl+Shift+R`).
-    * **Home/Categories:** Check if the "Home" and category tabs load posts. If you have more than `POSTS_PER_PAGE` (currently 10) in a view, you should see the "Load More" button. Click it to test pagination.
-    * **Single Post View:** Click on a post title in the list. The URL should change to include `#post-{slug}`, and only that post should be displayed, along with a "Back to list" button and potentially a "Related Posts" section below it (if other posts in the same category exist).
-    * **Related Posts:** Verify the related posts section appears on single post views and links correctly.
-    * **Share Buttons:** Check if the share buttons on the single post view use the correct `#post-{slug}` URL.
-    * **Back Button:** Test the "Back to list" button on the single post view.
-    * **RSS Feed:** Try navigating to `https://daily-reads-2nng.onrender.com/rss.xml`. You should see the generated XML feed. Check the links within the feed point to the `#post-{slug}` URLs.
-
-This is a large update with many interacting parts. Test thoroughly! Let me know if anything doesn't work as expect
