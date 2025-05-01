@@ -1,0 +1,16 @@
+# requirements.txt - Python dependencies for the Gemini content generator script
+
+# For making HTTP requests (potentially needed by Google libraries)
+requests>=2.28.0
+
+# Google Cloud client libraries
+# For interacting with Vertex AI (Gemini)
+google-cloud-aiplatform>=1.38.1
+# For authentication (handles Application Default Credentials)
+google-auth>=2.27.0
+
+# Supabase Python client library
+supabase-py>=2.0.0 # Check for the latest version
+
+# Optional: Add other libraries if needed
+# beautifulsoup4>=4.11.0

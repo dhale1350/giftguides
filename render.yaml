@@ -11,9 +11,6 @@ services:
     # Plan remains 'free' for the static site
     plan: free # Use Render's free static site hosting tier (via runtime: static)
     rootDir: public # The directory in the repository containing the static files (index.html, etc.)
-    # Static sites with runtime: static don't need a build command unless processing assets
-    # buildCommand: # Optional: Add if you need a build step (e.g., npm run build)
-    # staticPublishPath: ./public # Optional: Specify if build output is different from rootDir
     pullRequestPreviewsEnabled: true # Optional: Automatically builds and deploys previews for GitHub pull requests.
     buildFilter: # Optional: Controls when Render triggers a new build/deploy for this service.
       paths:

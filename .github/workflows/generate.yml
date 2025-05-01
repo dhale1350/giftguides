@@ -1,77 +1,60 @@
 # .github/workflows/generate.yml
-# GitHub Actions workflow to automatically run the Python script daily.
+# GitHub Actions workflow to automatically run the Python script daily,
+# saving generated content to Supabase.
 
-name: Daily Guide Generation # Name of the workflow displayed on GitHub Actions tab
+name: Daily Guide Generation (Supabase)
 
 on:
   schedule:
     # Trigger the workflow at 08:00 UTC every day.
-    # Uses POSIX cron syntax (minute hour day(month) month day(week))
-    # See: https://pubs.opengroup.org/onlinepubs/9699919799/utilities/crontab.html#tag_20_25_07
     - cron: '0 8 * * *'
-
-  workflow_dispatch: # Allows manually triggering the workflow from the GitHub Actions UI
+  workflow_dispatch: # Allows manual triggering
 
 jobs:
-  # Define a single job named 'generate-guide'
   generate-guide:
-    runs-on: ubuntu-latest # Specifies the type of virtual machine to run the job on
+    runs-on: ubuntu-latest # Use the latest Ubuntu runner
 
-    # Environment variables available to all steps in this job
-    # These are primarily sourced from GitHub repository secrets
+    # Environment variables needed by the Python script
+    # These are sourced from GitHub repository secrets
     env:
-      PB_URL: ${{ secrets.PB_RENDER_URL }} # Note: Script uses PB_URL, ensure secret name matches or update script
-      PB_ADMIN_EMAIL: ${{ secrets.PB_ADMIN_EMAIL }}
-      PB_ADMIN_PASSWORD: ${{ secrets.PB_ADMIN_PASSWORD }}
+      # Supabase Credentials
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }} # Use Service Role Key for backend script
+
+      # Google Cloud Credentials
       GCP_PROJECT: ${{ secrets.GCP_PROJECT }}
       GCP_LOCATION: ${{ secrets.GCP_LOCATION }}
-      # Setting PYTHONUNBUFFERED ensures that Python's print statements are sent directly
-      # to stdout/stderr without buffering, making logs appear in real-time.
+
+      # Python configuration
       PYTHONUNBUFFERED: "1"
 
     steps:
       # Step 1: Check out the repository code
-      # This downloads the latest code from the branch that triggered the workflow (or default branch for schedule)
       - name: Checkout code
-        uses: actions/checkout@v4 # Use the latest version of the checkout action
+        uses: actions/checkout@v4
 
       # Step 2: Set up Python environment
       - name: Set up Python 3.11
-        uses: actions/setup-python@v5 # Use the latest version of the setup-python action
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.11' # Specify the desired Python version
-          cache: 'pip' # Enable caching of pip dependencies based on requirements.txt hash
-                       # This speeds up subsequent runs if requirements haven't changed.
+          python-version: '3.11'
+          cache: 'pip' # Cache dependencies
 
-      # Step 3: Install Python dependencies
+      # Step 3: Install Python dependencies (including supabase-py)
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r scripts/requirements.txt
-        # Installs the libraries listed in the requirements file located in the scripts directory
 
-      # Step 4: Authenticate to Google Cloud
-      # This action uses the Service Account Key stored in secrets to configure
-      # gcloud CLI and Application Default Credentials (ADC).
-      # ADC allows Google Cloud client libraries (used in the Python script) to authenticate automatically.
+      # Step 4: Authenticate to Google Cloud for Vertex AI
+      # Configures Application Default Credentials (ADC) using the SA key secret
       - name: Set up Google Cloud SDK and Auth
         uses: google-github-actions/setup-gcloud@v2
         with:
-          # Provide the Service Account Key JSON content from GitHub secrets
           service_account_key: ${{ secrets.GCP_SA_KEY }}
-          # Specify the Google Cloud project ID
           project_id: ${{ secrets.GCP_PROJECT }}
-          # Optional: Make credentials file path available if needed by specific tools
-          # export_default_credentials: true
 
       # Step 5: Run the Python generator script
-      - name: Run Guide Generator Script (Python)
+      # The script will use Supabase env vars and Google Cloud ADC
+      - name: Run Guide Generator Script (Python/Supabase)
         run: python scripts/generate_guide.py
-        # Executes the main Python script.
-        # The script will use the environment variables (PB_URL, GCP_PROJECT, etc.)
-        # and Google Cloud ADC set up in previous steps.
-
-      # Optional Step 6: Add error handling or notifications (e.g., on failure)
-      # - name: Notify on failure
-      #   if: failure() # Only run this step if previous steps failed
-      #   run: echo "Workflow failed!" # Replace with actual notification command (e.g., curl to Slack)

@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="utf-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>Daily Gift Guide</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Gift Guide</title>
 
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX"
          crossorigin="anonymous"></script>
@@ -18,80 +19,22 @@
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-            line-height: 1.7;
-            padding: 15px;
-            max-width: 800px; /* Limit content width for readability */
-            margin: 20px auto; /* Center content */
-            color: var(--primary-color);
-            background-color: var(--background-color);
+            line-height: 1.7; padding: 15px; max-width: 800px; margin: 20px auto; color: var(--primary-color); background-color: var(--background-color);
         }
-        header, footer {
-            text-align: center;
-            margin-bottom: 30px;
-            color: var(--secondary-color);
-        }
-        h1#guide-title {
-            color: #1a1a1a;
-            font-size: 2em; /* Larger title */
-            margin-bottom: 0.5em;
-        }
-        article#guide-content {
-            margin-top: 20px;
-        }
-        /* Styling for generated HTML content */
-        #guide-content h2 {
-            margin-top: 2em;
-            margin-bottom: 0.8em;
-            padding-bottom: 0.3em;
-            border-bottom: 2px solid var(--border-color);
-            color: var(--primary-color);
-            font-size: 1.5em;
-        }
-        #guide-content p {
-            margin-bottom: 1.2em;
-        }
-        #guide-content img {
-            max-width: 100%; /* Ensure images are responsive */
-            height: auto;
-            display: block; /* Center images if they are block */
-            margin: 1.5em auto; /* Add space around images */
-            border-radius: 8px; /* Slightly rounded corners for images */
-        }
-        #guide-content a { /* Style links within content */
-            color: var(--accent-color);
-            text-decoration: none;
-        }
-        #guide-content a:hover {
-            text-decoration: underline;
-        }
-        /* Style for AdSense block */
-        .ad-container {
-            margin: 40px 0; /* More vertical space around ad */
-            padding: 20px 0;
-            border-top: 1px solid var(--border-color);
-            border-bottom: 1px solid var(--border-color);
-            text-align: center;
-            background-color: var(--ad-background);
-        }
-        /* Loading/Error State */
-        .status-message {
-            color: var(--secondary-color);
-            font-style: italic;
-            text-align: center;
-            margin-top: 40px;
-        }
-
-        /* Responsive Adjustments */
+        header, footer { text-align: center; margin-bottom: 30px; color: var(--secondary-color); }
+        h1#guide-title { color: #1a1a1a; font-size: 2em; margin-bottom: 0.5em; }
+        article#guide-content { margin-top: 20px; }
+        #guide-content h2 { margin-top: 2em; margin-bottom: 0.8em; padding-bottom: 0.3em; border-bottom: 2px solid var(--border-color); color: var(--primary-color); font-size: 1.5em; }
+        #guide-content p { margin-bottom: 1.2em; }
+        #guide-content img { max-width: 100%; height: auto; display: block; margin: 1.5em auto; border-radius: 8px; }
+        #guide-content a { color: var(--accent-color); text-decoration: none; }
+        #guide-content a:hover { text-decoration: underline; }
+        .ad-container { margin: 40px 0; padding: 20px 0; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); text-align: center; background-color: var(--ad-background); }
+        .status-message { color: var(--secondary-color); font-style: italic; text-align: center; margin-top: 40px; }
         @media (max-width: 600px) {
-            body {
-                padding: 10px;
-            }
-            h1#guide-title {
-                font-size: 1.6em;
-            }
-            #guide-content h2 {
-                font-size: 1.3em;
-            }
+            body { padding: 10px; }
+            h1#guide-title { font-size: 1.6em; }
+            #guide-content h2 { font-size: 1.3em; }
         }
     </style>
 </head>
@@ -110,7 +53,7 @@
                  style="display:block"
                  data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"  data-ad-slot="YYYYYYYYYY"            data-ad-format="auto"
                  data-full-width-responsive="true"></ins>
-            </div>
+        </div>
     </main>
 
     <footer>
@@ -118,62 +61,64 @@
     </footer>
 
     <script>
-      // Immediately Invoked Async Function Expression (IIAFE) to scope variables
       (async () => {
         // --- Configuration ---
-        // !!! IMPORTANT: Replace with YOUR actual deployed PocketBase Render service URL !!!
-        const PB_URL = 'https://yourname-giftguides-pb.onrender.com'; // Example URL
+        // !!! IMPORTANT: Replace with YOUR Supabase Project URL !!!
+const SUPABASE_URL = 'https://gbxdhqqlbandnhvfkbtr.supabase.co'; // Your URL
+// !!! IMPORTANT: Replace with YOUR Supabase Anon Key (this one is safe to expose in frontend code) !!!
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdieGRocXFsYmFuZG5odmZrYnRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxMDAwOTQsImV4cCI6MjA2MTY3NjA5NH0.W_T6oa1lSbZ-9W_E5Jo66c9ShK_FVoc1zJTZ7vir6eY'; // Your Anon Key
 
-        // Get references to the HTML elements we need to update
+        // Get references to HTML elements
         const titleElement = document.getElementById('guide-title');
         const contentElement = document.getElementById('guide-content');
 
-        // --- Fetch Latest Guide ---
+        // --- Fetch Latest Guide from Supabase ---
         try {
-          // Fetch the latest 1 record from the 'guides' collection, sorted newest first
-          const response = await fetch(`${PB_URL.replace(/\/$/, '')}/api/collections/guides/records?sort=-publishedAt&perPage=1`);
+          // Construct the Supabase REST API URL
+          // Fetching from the 'guides' table, selecting all columns (*),
+          // ordering by 'publishedAt' descending, and limiting to 1 result.
+          const fetchURL = `${SUPABASE_URL}
 
-          // Check if the fetch was successful
+https://gbxdhqqlbandnhvfkbtr.supabase.co`;
+
+          // Make the fetch request with required Supabase headers
+          const response = await fetch(fetchURL, {
+            headers: {
+              'apikey': SUPABASE_ANON_KEY, // Public Anon Key
+              'Authorization': `Bearer ${SUPABASE_ANON_KEY}` // Also needed for RLS bypass if rules require auth
+            }
+          });
+
           if (!response.ok) {
-            // Throw an error with details if the response status is not OK (e.g., 404, 500)
             throw new Error(`HTTP error! Status: ${response.status} ${response.statusText}`);
           }
 
-          // Parse the JSON response body
+          // Parse the JSON response (Supabase returns an array of objects)
           const data = await response.json();
 
-          // Check if the response contains items
-          if (data.items && data.items.length > 0) {
-            // Get the first (latest) guide item
-            const [latestGuide] = data.items;
-            // Update the page title and content
+          // Check if data was returned
+          if (data && data.length > 0) {
+            const [latestGuide] = data; // Get the first item from the array
+            // Update the page content
             titleElement.textContent = latestGuide.title;
-            // Directly inject the HTML content from PocketBase.
-            // WARNING: Only do this if you trust the source of the HTML (the AI generation process).
-            // If the AI could generate malicious scripts, consider using a sanitizer library (like DOMPurify) here.
-            contentElement.innerHTML = latestGuide.contentHTML;
-            console.log("Successfully loaded guide:", latestGuide.title);
+            contentElement.innerHTML = latestGuide.contentHTML; // Assumes HTML is safe
+            console.log("Successfully loaded guide from Supabase:", latestGuide.title);
           } else {
-             // Handle the case where no guides are found in PocketBase yet
-             titleElement.textContent = 'No Guide Available Yet';
-             contentElement.innerHTML = '<p class="status-message">The first guide hasn\'t been generated yet. Please check back later!</p>';
-             console.log("No guides found in PocketBase collection.");
+            titleElement.textContent = 'No Guide Available Yet';
+            contentElement.innerHTML = '<p class="status-message">The first guide hasn\'t been generated yet. Please check back later!</p>';
+            console.log("No guides found in Supabase table.");
           }
         } catch (error) {
-           // Handle any errors during the fetch process
-           console.error("Failed to fetch or process guide:", error);
-           titleElement.textContent = 'Failed to Load Guide';
-           contentElement.innerHTML = `<p class="status-message">Sorry, there was an error loading the latest guide. Please try refreshing the page later. Error details: ${error.message}</p>`;
+          console.error("Failed to fetch or process guide from Supabase:", error);
+          titleElement.textContent = 'Failed to Load Guide';
+          contentElement.innerHTML = `<p class="status-message">Sorry, there was an error loading the latest guide. Please try refreshing the page later. Error details: ${error.message}</p>`;
         }
 
         // --- AdSense Setup Step 3: Initialize Ad ---
-        // This should be called after the main content is potentially loaded.
         try {
-          // Check if adsbygoogle is initialized, if not use empty array, then push config.
           (adsbygoogle = window.adsbygoogle || []).push({});
           console.log("AdSense ad push attempted.");
         } catch (adError) {
-          // Log errors related to AdSense initialization
           console.error("AdSense initialization error:", adError);
         }
       })();
