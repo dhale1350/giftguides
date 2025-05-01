@@ -1,20 +1,24 @@
 # render.yaml - Defines the services for the Automated Blog on Render
-# This version ONLY includes the static frontend site, assuming the backend
-# is handled by a separate service like Supabase.
+# Corrected configuration for serving static files directly from the 'public' directory.
 
 services:
   # 1. Static Frontend Service
-  #    Serves the static HTML, CSS, and JavaScript files for the blog interface.
-  - type: web # Use 'web' for static sites in Blueprints
+  #    Serves the static HTML, CSS, and JavaScript files from the 'public' directory.
+  - type: web # Use 'web' for static sites
     name: daily-reads # Service name
-    runtime: static # Specify 'static' runtime for type: web
-    # Removed 'plan: free' - Render should infer free static hosting from runtime: static
-    rootDir: public # The directory in the repository containing the source static files
-    staticPublishPath: public # *** ADDED: Explicitly specify the directory to publish ***
-    # buildCommand: # Optional: Add if you need a build step (e.g., npm run build)
-    pullRequestPreviewsEnabled: true # Optional: Automatically builds and deploys previews for GitHub pull requests.
-    buildFilter: # Optional: Controls when Render triggers a new build/deploy for this service.
-      paths:
-      - public/** # Only trigger a deploy if files within the 'public' directory change.
+    runtime: static # Specify 'static' runtime
+    # staticPublishPath: Specifies the directory relative to the repository root
+    #                    containing the static files to be served.
+    staticPublishPath: ./public
+    # rootDir is generally not needed for simple static sites with no build step
+    # where staticPublishPath is relative to the repo root.
 
-# Note: The PocketBase web service definition has been removed.
+    pullRequestPreviewsEnabled: true # Optional: Enable PR previews
+
+    # buildFilter: Only trigger deploys if files within the 'public' directory change.
+    buildFilter:
+      paths:
+      - public/**
+
+# Note: Ensure your index.html is directly inside the 'public' folder
+# at the root of your GitHub repository.
