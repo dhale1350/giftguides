@@ -3,9 +3,7 @@
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daily Gift Guide</title>
-
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX"
+    <title>Daily Reads Blog</title> <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX"
          crossorigin="anonymous"></script>
 
     <style>
@@ -16,76 +14,156 @@
             --accent-color: #007bff;
             --border-color: #eee;
             --ad-background: #f9f9f9;
+            --post-separator-color: #ddd;
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-            line-height: 1.7; padding: 15px; max-width: 800px; margin: 20px auto; color: var(--primary-color); background-color: var(--background-color);
+            line-height: 1.7;
+            padding: 15px;
+            max-width: 800px; /* Limit content width */
+            margin: 20px auto; /* Center content */
+            color: var(--primary-color);
+            background-color: var(--background-color);
         }
-        header, footer { text-align: center; margin-bottom: 30px; color: var(--secondary-color); }
-        h1#guide-title { color: #1a1a1a; font-size: 2em; margin-bottom: 0.5em; }
-        article#guide-content { margin-top: 20px; }
-        #guide-content h2 { margin-top: 2em; margin-bottom: 0.8em; padding-bottom: 0.3em; border-bottom: 2px solid var(--border-color); color: var(--primary-color); font-size: 1.5em; }
-        #guide-content p { margin-bottom: 1.2em; }
-        #guide-content img { max-width: 100%; height: auto; display: block; margin: 1.5em auto; border-radius: 8px; }
-        #guide-content a { color: var(--accent-color); text-decoration: none; }
-        #guide-content a:hover { text-decoration: underline; }
-        .ad-container { margin: 40px 0; padding: 20px 0; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); text-align: center; background-color: var(--ad-background); }
-        .status-message { color: var(--secondary-color); font-style: italic; text-align: center; margin-top: 40px; }
+        header, footer {
+            text-align: center;
+            margin-bottom: 30px;
+            color: var(--secondary-color);
+        }
+        /* Style for each blog post entry */
+        .blog-post {
+            margin-bottom: 40px; /* Space between posts */
+            padding-bottom: 30px; /* Space before separator */
+            border-bottom: 1px solid var(--post-separator-color); /* Separator line */
+        }
+        .blog-post:last-child {
+            border-bottom: none; /* No separator after the last post */
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        .blog-post-title {
+            color: #1a1a1a;
+            font-size: 1.8em; /* Slightly smaller than main page title */
+            margin-bottom: 0.5em;
+        }
+        .blog-post-meta {
+            font-size: 0.9em;
+            color: var(--secondary-color);
+            margin-bottom: 1.5em;
+        }
+        .blog-post-content h2 { /* Style H2 within generated content */
+            margin-top: 1.5em;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--primary-color);
+            font-size: 1.4em;
+        }
+        .blog-post-content p {
+            margin-bottom: 1.2em;
+        }
+        .blog-post-content img {
+            max-width: 100%; /* Responsive images */
+            height: auto;
+            display: block;
+            margin: 1.5em auto;
+            border-radius: 8px;
+        }
+        .blog-post-content a {
+            color: var(--accent-color);
+            text-decoration: none;
+        }
+        .blog-post-content a:hover {
+            text-decoration: underline;
+        }
+        /* Style for AdSense block */
+        .ad-container {
+            margin: 40px 0;
+            padding: 20px 0;
+            border-top: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border-color);
+            text-align: center;
+            background-color: var(--ad-background);
+        }
+        /* Loading/Error State */
+        #status-message { /* Changed ID */
+            color: var(--secondary-color);
+            font-style: italic;
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+        }
+
+        /* Responsive Adjustments */
         @media (max-width: 600px) {
-            body { padding: 10px; }
-            h1#guide-title { font-size: 1.6em; }
-            #guide-content h2 { font-size: 1.3em; }
+            body {
+                padding: 10px;
+            }
+            .blog-post-title {
+                font-size: 1.5em;
+            }
+            .blog-post-content h2 {
+                font-size: 1.2em;
+            }
         }
     </style>
 </head>
 <body>
     <header>
-        <h1 id="guide-title">Loading Today's Gift Guide...</h1>
-    </header>
+        <h1>Daily Reads Blog</h1> </header>
 
-    <main>
-        <article id="guide-content">
-            <p class="status-message">Please wait while the latest guide is loaded.</p>
-        </article>
-
-        <div class="ad-container">
-            <ins class="adsbygoogle"
-                 style="display:block"
-                 data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"  data-ad-slot="YYYYYYYYYY"            data-ad-format="auto"
-                 data-full-width-responsive="true"></ins>
-        </div>
+    <main id="blog-posts-container">
+        <p id="status-message">Loading posts...</p>
     </main>
 
+    <div class="ad-container">
+        <ins class="adsbygoogle"
+             style="display:block"
+             data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"  data-ad-slot="YYYYYYYYYY"            data-ad-format="auto"
+             data-full-width-responsive="true"></ins>
+    </div>
+
     <footer>
-        <p><small>Guide generated daily using AI. Advertising supports this site.</small></p>
+        <p><small>Content generated daily using AI. Advertising supports this site.</small></p>
     </footer>
 
     <script>
       (async () => {
         // --- Configuration ---
-        // !!! IMPORTANT: Replace with YOUR Supabase Project URL !!!
-const SUPABASE_URL = 'https://gbxdhqqlbandnhvfkbtr.supabase.co'; // Your URL
-// !!! IMPORTANT: Replace with YOUR Supabase Anon Key (this one is safe to expose in frontend code) !!!
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdieGRocXFsYmFuZG5odmZrYnRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxMDAwOTQsImV4cCI6MjA2MTY3NjA5NH0.W_T6oa1lSbZ-9W_E5Jo66c9ShK_FVoc1zJTZ7vir6eY'; // Your Anon Key
+        const SUPABASE_URL = 'https://gbxdhqqlbandnhvfkbtr.supabase.co'; // Your Supabase URL
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdieGRocXFsYmFuZG5odmZrYnRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxMDAwOTQsImV4cCI6MjA2MTY3NjA5NH0.W_T6oa1lSbZ-9W_E5Jo66c9ShK_FVoc1zJTZ7vir6eY'; // Your Supabase Anon Key
+        const POSTS_LIMIT = 20; // How many recent posts to display
 
         // Get references to HTML elements
-        const titleElement = document.getElementById('guide-title');
-        const contentElement = document.getElementById('guide-content');
+        const postsContainer = document.getElementById('blog-posts-container');
+        const statusMessage = document.getElementById('status-message');
 
-        // --- Fetch Latest Guide from Supabase ---
+        // --- Function to format date ---
+        function formatDate(isoString) {
+            if (!isoString) return '';
+            try {
+                const date = new Date(isoString);
+                // Example format: 1 May 2025
+                return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+            } catch (e) {
+                console.error("Error formatting date:", e);
+                return ''; // Return empty string or the original string on error
+            }
+        }
+
+        // --- Fetch Latest Guides from Supabase ---
         try {
           // Construct the Supabase REST API URL
-          // Fetching from the 'guides' table, selecting all columns (*),
-          // ordering by 'publishedAt' descending, and limiting to 1 result.
-          const fetchURL = `${SUPABASE_URL}
+          // Fetching from 'guides', selecting all columns (*),
+          // ordering by 'publishedAt' descending, limiting to POSTS_LIMIT results.
+          const fetchURL = `${SUPABASE_URL}/rest/v1/guides?select=*&order=publishedAt.desc&limit=${POSTS_LIMIT}`;
 
-https://gbxdhqqlbandnhvfkbtr.supabase.co`;
-
-          // Make the fetch request with required Supabase headers
           const response = await fetch(fetchURL, {
             headers: {
-              'apikey': SUPABASE_ANON_KEY, // Public Anon Key
-              'Authorization': `Bearer ${SUPABASE_ANON_KEY}` // Also needed for RLS bypass if rules require auth
+              'apikey': SUPABASE_ANON_KEY,
+              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
             }
           });
 
@@ -93,34 +171,71 @@ https://gbxdhqqlbandnhvfkbtr.supabase.co`;
             throw new Error(`HTTP error! Status: ${response.status} ${response.statusText}`);
           }
 
-          // Parse the JSON response (Supabase returns an array of objects)
-          const data = await response.json();
+          const posts = await response.json(); // Expecting an array of posts
 
-          // Check if data was returned
-          if (data && data.length > 0) {
-            const [latestGuide] = data; // Get the first item from the array
-            // Update the page content
-            titleElement.textContent = latestGuide.title;
-            contentElement.innerHTML = latestGuide.contentHTML; // Assumes HTML is safe
-            console.log("Successfully loaded guide from Supabase:", latestGuide.title);
+          // Clear the loading message
+          statusMessage.remove(); // Remove the paragraph entirely
+
+          // Check if any posts were returned
+          if (posts && posts.length > 0) {
+            console.log(`Loaded ${posts.length} posts from Supabase.`);
+            // Loop through each post and render it
+            posts.forEach(post => {
+              // Create elements for the post
+              const article = document.createElement('article');
+              article.className = 'blog-post';
+
+              const title = document.createElement('h1');
+              title.className = 'blog-post-title';
+              title.textContent = post.title || 'Untitled Post'; // Fallback title
+
+              const meta = document.createElement('p');
+              meta.className = 'blog-post-meta';
+              meta.textContent = `Published on: ${formatDate(post.publishedAt)}`; // Format the date
+
+              const contentDiv = document.createElement('div');
+              contentDiv.className = 'blog-post-content';
+              // WARNING: Setting innerHTML from external source requires trust or sanitization.
+              // Assuming the AI content generated is trusted for this project.
+              contentDiv.innerHTML = post.contentHTML || '<p>Content not available.</p>'; // Fallback content
+
+              // Append elements to the article
+              article.appendChild(title);
+              article.appendChild(meta);
+              article.appendChild(contentDiv);
+
+              // Append the article to the main container
+              postsContainer.appendChild(article);
+            });
+
           } else {
-            titleElement.textContent = 'No Guide Available Yet';
-            contentElement.innerHTML = '<p class="status-message">The first guide hasn\'t been generated yet. Please check back later!</p>';
-            console.log("No guides found in Supabase table.");
+            // Display a message if no posts are found
+            const noPostsMessage = document.createElement('p');
+            noPostsMessage.id = 'status-message'; // Reuse ID for styling
+            noPostsMessage.textContent = 'No blog posts found yet. Please check back later!';
+            postsContainer.appendChild(noPostsMessage);
+            console.log("No posts found in Supabase table.");
           }
         } catch (error) {
-          console.error("Failed to fetch or process guide from Supabase:", error);
-          titleElement.textContent = 'Failed to Load Guide';
-          contentElement.innerHTML = `<p class="status-message">Sorry, there was an error loading the latest guide. Please try refreshing the page later. Error details: ${error.message}</p>`;
+          // Handle fetch errors
+          console.error("Failed to fetch or process posts from Supabase:", error);
+          // Clear potential partial content and show error
+          postsContainer.innerHTML = `<p id="status-message">Sorry, there was an error loading posts. Please try refreshing the page later. Error: ${error.message}</p>`;
         }
 
         // --- AdSense Setup Step 3: Initialize Ad ---
-        try {
-          (adsbygoogle = window.adsbygoogle || []).push({});
-          console.log("AdSense ad push attempted.");
-        } catch (adError) {
-          console.error("AdSense initialization error:", adError);
+        // Make sure AdSense code exists before trying to push
+        if (typeof adsbygoogle !== 'undefined') {
+            try {
+                (adsbygoogle = window.adsbygoogle || []).push({});
+                console.log("AdSense ad push attempted.");
+            } catch (adError) {
+                console.error("AdSense initialization error:", adError);
+            }
+        } else {
+            console.log("AdSense script not found, skipping ad initialization.");
         }
+
       })();
     </script>
 </body>
